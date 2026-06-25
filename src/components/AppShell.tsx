@@ -131,7 +131,7 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
       <nav className="px-3">
         <NavItem to="/" icon={LayoutDashboard} label="Dashboard" active={loc.pathname === "/"} collapsed={collapsed} />
         <NavItem to="/history" icon={History} label="History" active={loc.pathname === "/history"} collapsed={collapsed} />
-        <NavItem to="/" icon={Settings} label="Settings" collapsed={collapsed} disabled />
+        <NavItem to="/settings" icon={Settings} label="Settings" active={loc.pathname === "/settings"} collapsed={collapsed} />
       </nav>
 
       <div className="mt-4 flex-1 overflow-y-auto px-3 pb-6" data-tick={tick}>
