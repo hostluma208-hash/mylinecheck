@@ -274,19 +274,7 @@ function TopBar({
           </select>
         </Pill>
         <Pill icon={<User className="h-3.5 w-3.5" />}>
-          <select
-            value={member}
-            onChange={(e) => setMember(e.target.value)}
-            className="bg-transparent text-xs font-semibold outline-none"
-            aria-label="Team member"
-          >
-            <option value="">Team Member</option>
-            {STAFF.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
+          <TeamMemberSelect value={member} onChange={setMember} />
         </Pill>
       </div>
     </header>
