@@ -245,6 +245,7 @@ function TeamPanel() {
 
   useEffect(() => {
     localStorage.setItem(STAFF_KEY, JSON.stringify(members));
+    window.dispatchEvent(new Event("linecheck:staff-update"));
   }, [members]);
 
   const add = () => {
