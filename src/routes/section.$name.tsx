@@ -471,9 +471,13 @@ function SectionPage() {
                           {item.name}
                         </p>
                         <p className="truncate text-[11px] text-muted-foreground">
-                          {item.shelf || item.quality || "—"}
-                          {item.container ? ` · ${item.container}` : ""}
+                          {[item.shelf, item.container].filter(Boolean).join(" · ") || "—"}
                         </p>
+                        {item.quality && (
+                          <p className="truncate text-[11px] italic text-muted-foreground/80">
+                            {item.quality}
+                          </p>
+                        )}
                       </div>
 
                       <div className="hidden h-1.5 w-28 overflow-hidden rounded-full bg-muted sm:block">
