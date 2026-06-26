@@ -12,7 +12,25 @@ import {
   type SectionState,
   type Slot,
 } from "@/lib/lineCheck";
-import { Check, Edit3, Filter, MoreHorizontal, Save, Thermometer } from "lucide-react";
+import { Check, Edit3, Filter, MoreHorizontal, Save, Thermometer, Plus, Trash2, X } from "lucide-react";
+
+type EditItem = { name: string; quality: string; shelf: string; container: string };
+type EditCategory = { group: string; temp: boolean; items: EditItem[] };
+
+const SHELF_OPTIONS = ["By Expiration", "1 Day", "3 Days", "7 Days", "14 Days", "30 Days", "60 Days", "90 Days"];
+const CONTAINER_OPTIONS = ["Can", "Bottle", "1/3 Pan", "1/6 Pan", "1/9 Pan", "Full Pan", "Half Pan", "Quart", "Squeeze Bottle", "Other"];
+
+function sectionStructKey(name: string) {
+  return `linecheck:section-items:${name}`;
+}
+
+function loadSectionStruct(name: string, fallback: EditCategory[]): EditCategory[] {
+  try {
+    const raw = localStorage.getItem(sectionStructKey(name));
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return fallback;
+}
 
 export const Route = createFileRoute("/section/$name")({
   head: ({ params }) => ({
@@ -53,6 +71,21 @@ const STATUS_STYLES: Record<string, string> = {
   EXPIRED: "bg-rose-100 text-rose-900 border-rose-300",
 };
 
+function buildDefaultStruct(section: { items: Array<{ name: string; group?: string | null; quality?: string | null; shelf?: string | null; container?: string | null }> }): EditCategory[] {
+  const map = new Map<string, EditCategory>();
+  for (const it of section.items) {
+    const g = it.group || "Items";
+    if (!map.has(g)) map.set(g, { group: g, temp: /temp/i.test(g), items: [] });
+    map.get(g)!.items.push({
+      name: it.name,
+      quality: it.quality || "",
+      shelf: it.shelf || "",
+      container: it.container || "",
+    });
+  }
+  return [...map.values()];
+}
+
 function SectionPage() {
   const { name } = Route.useParams();
   const section = SECTIONS.find((s) => s.name === name);
@@ -64,9 +97,24 @@ function SectionPage() {
   const [savedFlash, setSavedFlash] = useState(false);
   const [flaggedOnly, setFlaggedOnly] = useState(false);
 
+  const defaultStruct = useMemo(
+    () => (section ? buildDefaultStruct(section) : []),
+    [section],
+  );
+  const [struct, setStruct] = useState<EditCategory[]>(() =>
+    loadSectionStruct(name, defaultStruct),
+  );
+  const [draft, setDraft] = useState<EditCategory[]>(struct);
+
   useEffect(() => {
     setState(loadSection(name, shell.date));
   }, [name, shell.date]);
+
+  useEffect(() => {
+    const s = loadSectionStruct(name, defaultStruct);
+    setStruct(s);
+    setDraft(s);
+  }, [name, defaultStruct]);
 
   useEffect(() => {
     try {
@@ -78,14 +126,9 @@ function SectionPage() {
   if (!section) return <div className="p-10">Section not found.</div>;
 
   const slot: Slot = shell.shift;
-  const groups = section.items.reduce<Record<string, typeof section.items>>((acc, it) => {
-    const k = it.group || "Items";
-    (acc[k] ||= []).push(it);
-    return acc;
-  }, {});
-
-  const total = section.items.length;
-  const done = section.items.filter((i) => state.entries[i.name]?.[slot]?.status).length;
+  const allItems = struct.flatMap((c) => c.items);
+  const total = allItems.length;
+  const done = allItems.filter((i) => state.entries[i.name]?.[slot]?.status).length;
   const pct = total ? Math.round((done / total) * 100) : 0;
 
   const setEntry = (item: string, patch: Partial<Entry>) => {
@@ -111,7 +154,7 @@ function SectionPage() {
   const markAllOK = () => {
     setState((prev) => {
       const entries = { ...prev.entries };
-      for (const it of section.items) {
+      for (const it of allItems) {
         entries[it.name] = {
           op: entries[it.name]?.op ?? emptyEntry(),
           mid: entries[it.name]?.mid ?? emptyEntry(),
@@ -132,8 +175,48 @@ function SectionPage() {
     setTimeout(() => setSavedFlash(false), 1400);
   };
 
+  const enterEdit = () => {
+    setDraft(JSON.parse(JSON.stringify(struct)));
+    setEditMode(true);
+  };
+  const cancelEdit = () => {
+    setDraft(struct);
+    setEditMode(false);
+  };
+  const saveCategories = () => {
+    try {
+      localStorage.setItem(sectionStructKey(name), JSON.stringify(draft));
+    } catch {}
+    setStruct(draft);
+    setEditMode(false);
+  };
+
+  const updateCat = (i: number, patch: Partial<EditCategory>) =>
+    setDraft((d) => d.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
+  const removeCat = (i: number) =>
+    setDraft((d) => d.filter((_, idx) => idx !== i));
+  const addCat = () =>
+    setDraft((d) => [...d, { group: "New Category", temp: false, items: [] }]);
+  const updateItem = (ci: number, ii: number, patch: Partial<EditItem>) =>
+    setDraft((d) =>
+      d.map((c, idx) =>
+        idx === ci ? { ...c, items: c.items.map((it, j) => (j === ii ? { ...it, ...patch } : it)) } : c,
+      ),
+    );
+  const removeItem = (ci: number, ii: number) =>
+    setDraft((d) =>
+      d.map((c, idx) => (idx === ci ? { ...c, items: c.items.filter((_, j) => j !== ii) } : c)),
+    );
+  const addItem = (ci: number) =>
+    setDraft((d) =>
+      d.map((c, idx) =>
+        idx === ci
+          ? { ...c, items: [...c.items, { name: "", quality: "", shelf: "By Expiration", container: "Can" }] }
+          : c,
+      ),
+    );
+
   const shiftLabel = slot === "op" ? "Opening" : slot === "mid" ? "Mid" : "Closing";
-  // ring color stops
   const ringStyle = {
     background: `conic-gradient(var(--ring-color, hsl(258 90% 66%)) ${pct * 3.6}deg, hsl(var(--muted)) 0deg)`,
   } as React.CSSProperties;
@@ -150,7 +233,7 @@ function SectionPage() {
           <div className="min-w-0">
             <h2 className="text-2xl font-extrabold tracking-tight">{section.name}</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {done} of {total} items checked · {shiftLabel}
+              {done} of {total} items checked{!editMode && ` · ${shiftLabel}`}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -160,41 +243,57 @@ function SectionPage() {
               aria-label={`${pct} percent complete`}
             >
               <div className="grid h-[46px] w-[46px] place-items-center rounded-full bg-card text-sm font-bold tabular-nums">
-                {pct}
+                {editMode ? done : pct}
               </div>
             </div>
-            <button
-              onClick={() => setFlaggedOnly((v) => !v)}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
-                flaggedOnly
-                  ? "border-rose-300 bg-rose-50 text-rose-700"
-                  : "border-border bg-card hover:bg-accent"
-              }`}
-            >
-              <Filter className="h-3.5 w-3.5" /> {flaggedOnly ? "Flagged Only" : "All Items"}
-            </button>
-            <button
-              onClick={() => setEditMode((v) => !v)}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
-                editMode
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-card hover:bg-accent"
-              }`}
-            >
-              <Edit3 className="h-3.5 w-3.5" /> {editMode ? "Done" : "Edit"}
-            </button>
-            <button
-              onClick={markAllOK}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-semibold hover:bg-accent"
-            >
-              <Check className="h-3.5 w-3.5" /> Mark All OK
-            </button>
-            <button
-              onClick={saveCheck}
-              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-xs font-semibold text-background hover:opacity-90"
-            >
-              <Save className="h-3.5 w-3.5" /> {savedFlash ? "Saved!" : "Save Check"}
-            </button>
+            {!editMode && (
+              <>
+                <button
+                  onClick={() => setFlaggedOnly((v) => !v)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
+                    flaggedOnly
+                      ? "border-rose-300 bg-rose-50 text-rose-700"
+                      : "border-border bg-card hover:bg-accent"
+                  }`}
+                >
+                  <Filter className="h-3.5 w-3.5" /> {flaggedOnly ? "Flagged Only" : "All Items"}
+                </button>
+                <button
+                  onClick={enterEdit}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-semibold hover:bg-accent"
+                >
+                  <Edit3 className="h-3.5 w-3.5" /> Edit
+                </button>
+                <button
+                  onClick={markAllOK}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-semibold hover:bg-accent"
+                >
+                  <Check className="h-3.5 w-3.5" /> Mark All OK
+                </button>
+                <button
+                  onClick={saveCheck}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-xs font-semibold text-background hover:opacity-90"
+                >
+                  <Save className="h-3.5 w-3.5" /> {savedFlash ? "Saved!" : "Save Check"}
+                </button>
+              </>
+            )}
+            {editMode && (
+              <>
+                <button
+                  onClick={saveCategories}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background hover:opacity-90"
+                >
+                  <Save className="h-3.5 w-3.5" /> Save Categories
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold hover:bg-accent"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancel
+                </button>
+              </>
+            )}
           </div>
         </div>
         <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -205,133 +304,228 @@ function SectionPage() {
         </div>
       </section>
 
-      {/* Groups */}
-      {Object.entries(groups)
-        .map(([group, items]) => {
-          const visible = items.filter((item) => {
-            if (!flaggedOnly) return true;
-            const s = state.entries[item.name]?.[slot]?.status;
-            return !!s && FLAG_STATUSES.has(s);
-          });
-          return [group, visible] as const;
-        })
-        .filter(([, visible]) => visible.length > 0)
-        .map(([group, items]) => (
-          <section key={group} className="mt-6">
-            <div className="mb-2 flex items-center justify-between px-1">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                {group}
-              </h3>
-              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                <Thermometer className="h-3 w-3 text-sky-500" /> Temp
-              </span>
-            </div>
+      {/* Edit Categories & Items panel */}
+      {editMode && (
+        <section className="mt-5 rounded-2xl border border-border bg-card px-6 py-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              Edit Categories &amp; Items
+            </h3>
+            <button
+              onClick={addCat}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-accent"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Category
+            </button>
+          </div>
 
-            <div className="space-y-2">
-              {items.map((item) => {
-              const e = state.entries[item.name]?.[slot];
-              const status = e?.status ?? "";
-              const checked = !!status;
-              const flagged = status && FLAG_STATUSES.has(status);
-              const itemPct = checked ? 100 : 0;
-
-              return (
-                <div
-                  key={item.name}
-                  className={`flex items-center gap-3 rounded-2xl border bg-card px-3 py-2.5 transition ${
-                    flagged ? "border-rose-200" : "border-border"
-                  }`}
-                >
-                  {/* Checkbox */}
-                  <button
-                    onClick={() => toggleCheck(item.name)}
-                    aria-label={checked ? "Uncheck item" : "Mark item OK"}
-                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border transition ${
-                      checked
-                        ? "border-emerald-500 bg-emerald-500 text-white"
-                        : "border-input bg-background hover:bg-accent"
-                    }`}
-                  >
-                    {checked && <Check className="h-4 w-4" strokeWidth={3} />}
-                  </button>
-
-                  {/* Name + spec */}
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={`truncate text-sm font-semibold ${
-                        checked ? "text-muted-foreground line-through" : "text-foreground"
-                      }`}
-                    >
-                      {item.name}
-                    </p>
-                    <p className="truncate text-[11px] text-muted-foreground">
-                      {item.shelf || item.quality || "—"}
-                      {item.container ? ` · ${item.container}` : ""}
-                    </p>
-                  </div>
-
-                  {editMode && (
+          <div className="space-y-5">
+            {draft.map((cat, ci) => (
+              <div key={ci} className="rounded-xl border border-border bg-background/40 p-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    value={cat.group}
+                    onChange={(e) => updateCat(ci, { group: e.target.value })}
+                    placeholder="Category name"
+                    className="flex-1 rounded-lg border border-input bg-card px-3 py-2 text-sm font-bold tracking-tight outline-none focus:border-foreground/30"
+                  />
+                  <label className={`grid h-7 w-7 cursor-pointer place-items-center rounded-md border ${cat.temp ? "border-emerald-500 bg-emerald-500 text-white" : "border-input bg-background text-muted-foreground"}`}>
                     <input
-                      type="text"
-                      value={e?.note ?? ""}
-                      onChange={(ev) => setEntry(item.name, { note: ev.target.value })}
-                      placeholder="note / temp"
-                      className="hidden w-32 rounded-md border border-input bg-background px-2 py-1 text-[11px] md:block"
+                      type="checkbox"
+                      checked={cat.temp}
+                      onChange={(e) => updateCat(ci, { temp: e.target.checked })}
+                      className="sr-only"
                     />
-                  )}
-
-                  {/* Mini progress */}
-                  <div className="hidden h-1.5 w-28 overflow-hidden rounded-full bg-muted sm:block">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${itemPct}%`,
-                        background: "var(--gradient-readiness)",
-                      }}
-                    />
-                  </div>
-
-                  {/* Status select */}
-                  <div className="relative">
-                    <select
-                      value={status}
-                      onChange={(ev) => setEntry(item.name, { status: ev.target.value })}
-                      className={`appearance-none rounded-md border px-2.5 py-1 pr-6 text-[11px] font-semibold uppercase tracking-wide ${
-                        status
-                          ? STATUS_STYLES[status] ?? "border-border bg-card"
-                          : "border-input bg-background text-muted-foreground"
-                      }`}
-                      aria-label={`${item.name} status`}
-                    >
-                      <option value="">Unchecked</option>
-                      {STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                    <svg
-                      className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 opacity-70"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                    >
-                      <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-
+                    {cat.temp && <Check className="h-4 w-4" strokeWidth={3} />}
+                  </label>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Thermometer className="h-3.5 w-3.5 text-sky-500" /> Temp
+                  </span>
                   <button
-                    className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-accent"
-                    aria-label="More options"
-                    onClick={() => setEntry(item.name, { note: prompt("Note for this item:", e?.note ?? "") ?? e?.note ?? "" })}
+                    onClick={() => removeCat(ci)}
+                    className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                    aria-label="Delete category"
                   >
-                    <MoreHorizontal className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-              );
-            })}
+
+                <div className="mt-3 space-y-2">
+                  {cat.items.map((it, ii) => (
+                    <div key={ii} className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={it.name}
+                          onChange={(e) => updateItem(ci, ii, { name: e.target.value })}
+                          placeholder="Item name"
+                          className="flex-1 rounded-lg border border-input bg-card px-3 py-1.5 text-sm outline-none focus:border-foreground/30"
+                        />
+                        <button
+                          onClick={() => removeItem(ci, ii)}
+                          className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                          aria-label="Delete item"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          value={it.quality}
+                          onChange={(e) => updateItem(ci, ii, { quality: e.target.value })}
+                          placeholder="Quality / spec"
+                          className="min-w-[200px] flex-1 rounded-lg border border-input bg-card px-3 py-1.5 text-xs outline-none focus:border-foreground/30"
+                        />
+                        <select
+                          value={it.shelf}
+                          onChange={(e) => updateItem(ci, ii, { shelf: e.target.value })}
+                          className="rounded-lg border border-input bg-card px-3 py-1.5 text-xs outline-none"
+                        >
+                          {[it.shelf, ...SHELF_OPTIONS.filter((o) => o !== it.shelf)].filter(Boolean).map((o) => (
+                            <option key={o} value={o}>{o}</option>
+                          ))}
+                        </select>
+                        <select
+                          value={it.container}
+                          onChange={(e) => updateItem(ci, ii, { container: e.target.value })}
+                          className="rounded-lg border border-input bg-card px-3 py-1.5 text-xs outline-none"
+                        >
+                          {[it.container, ...CONTAINER_OPTIONS.filter((o) => o !== it.container)].filter(Boolean).map((o) => (
+                            <option key={o} value={o}>{o}</option>
+                          ))}
+                        </select>
+                        <div className="w-7" />
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addItem(ci)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border bg-card/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add Item
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
-      ))}
+      )}
+
+      {/* Groups (view mode) */}
+      {!editMode &&
+        struct
+          .map((cat) => {
+            const visible = cat.items.filter((item) => {
+              if (!flaggedOnly) return true;
+              const s = state.entries[item.name]?.[slot]?.status;
+              return !!s && FLAG_STATUSES.has(s);
+            });
+            return [cat, visible] as const;
+          })
+          .filter(([, visible]) => visible.length > 0)
+          .map(([cat, items]) => (
+            <section key={cat.group} className="mt-6">
+              <div className="mb-2 flex items-center justify-between px-1">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  {cat.group}
+                </h3>
+                {cat.temp && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    <Thermometer className="h-3 w-3 text-sky-500" /> Temp
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {items.map((item) => {
+                  const e = state.entries[item.name]?.[slot];
+                  const status = e?.status ?? "";
+                  const checked = !!status;
+                  const flagged = status && FLAG_STATUSES.has(status);
+                  const itemPct = checked ? 100 : 0;
+
+                  return (
+                    <div
+                      key={item.name}
+                      className={`flex items-center gap-3 rounded-2xl border bg-card px-3 py-2.5 transition ${
+                        flagged ? "border-rose-200" : "border-border"
+                      }`}
+                    >
+                      <button
+                        onClick={() => toggleCheck(item.name)}
+                        aria-label={checked ? "Uncheck item" : "Mark item OK"}
+                        className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg border transition ${
+                          checked
+                            ? "border-emerald-500 bg-emerald-500 text-white"
+                            : "border-input bg-background hover:bg-accent"
+                        }`}
+                      >
+                        {checked && <Check className="h-4 w-4" strokeWidth={3} />}
+                      </button>
+
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={`truncate text-sm font-semibold ${
+                            checked ? "text-muted-foreground line-through" : "text-foreground"
+                          }`}
+                        >
+                          {item.name}
+                        </p>
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          {item.shelf || item.quality || "—"}
+                          {item.container ? ` · ${item.container}` : ""}
+                        </p>
+                      </div>
+
+                      <div className="hidden h-1.5 w-28 overflow-hidden rounded-full bg-muted sm:block">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${itemPct}%`,
+                            background: "var(--gradient-readiness)",
+                          }}
+                        />
+                      </div>
+
+                      <div className="relative">
+                        <select
+                          value={status}
+                          onChange={(ev) => setEntry(item.name, { status: ev.target.value })}
+                          className={`appearance-none rounded-md border px-2.5 py-1 pr-6 text-[11px] font-semibold uppercase tracking-wide ${
+                            status
+                              ? STATUS_STYLES[status] ?? "border-border bg-card"
+                              : "border-input bg-background text-muted-foreground"
+                          }`}
+                          aria-label={`${item.name} status`}
+                        >
+                          <option value="">Unchecked</option>
+                          {STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                        <svg
+                          className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 opacity-70"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                        >
+                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+
+                      <button
+                        className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-accent"
+                        aria-label="More options"
+                        onClick={() => setEntry(item.name, { note: prompt("Note for this item:", e?.note ?? "") ?? e?.note ?? "" })}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
     </AppShell>
   );
 }
