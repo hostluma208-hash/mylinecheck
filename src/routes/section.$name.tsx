@@ -71,7 +71,7 @@ const STATUS_STYLES: Record<string, string> = {
   EXPIRED: "bg-rose-100 text-rose-900 border-rose-300",
 };
 
-function buildDefaultStruct(section: { items: { name: string; group?: string; quality?: string; shelf?: string; container?: string }[] }): EditCategory[] {
+function buildDefaultStruct(section: { items: Array<{ name: string; group?: string | null; quality?: string | null; shelf?: string | null; container?: string | null }> }): EditCategory[] {
   const map = new Map<string, EditCategory>();
   for (const it of section.items) {
     const g = it.group || "Items";
