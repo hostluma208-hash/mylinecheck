@@ -290,6 +290,47 @@ function Pill({ icon, children }: { icon: React.ReactNode; children: React.React
   );
 }
 
+function TeamMemberSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [members, setMembers] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem("linecheck:settings:staff");
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return STAFF;
+  });
+  useEffect(() => {
+    const refresh = () => {
+      try {
+        const raw = localStorage.getItem("linecheck:settings:staff");
+        setMembers(raw ? JSON.parse(raw) : STAFF);
+      } catch {
+        setMembers(STAFF);
+      }
+    };
+    window.addEventListener("storage", refresh);
+    window.addEventListener("linecheck:staff-update", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("linecheck:staff-update", refresh);
+    };
+  }, []);
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="bg-transparent text-xs font-semibold outline-none"
+      aria-label="Team member"
+    >
+      <option value="">Team Member</option>
+      {members.map((p) => (
+        <option key={p} value={p}>
+          {p}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export function useShellState(initialTitle: string) {
   const [date, setDate] = useState(todayISO());
   const [shift, setShift] = useState<Slot>(defaultShift());
