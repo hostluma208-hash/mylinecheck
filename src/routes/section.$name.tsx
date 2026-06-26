@@ -12,7 +12,25 @@ import {
   type SectionState,
   type Slot,
 } from "@/lib/lineCheck";
-import { Check, Edit3, Filter, MoreHorizontal, Save, Thermometer } from "lucide-react";
+import { Check, Edit3, Filter, MoreHorizontal, Save, Thermometer, Plus, Trash2, X } from "lucide-react";
+
+type EditItem = { name: string; quality: string; shelf: string; container: string };
+type EditCategory = { group: string; temp: boolean; items: EditItem[] };
+
+const SHELF_OPTIONS = ["By Expiration", "1 Day", "3 Days", "7 Days", "14 Days", "30 Days", "60 Days", "90 Days"];
+const CONTAINER_OPTIONS = ["Can", "Bottle", "1/3 Pan", "1/6 Pan", "1/9 Pan", "Full Pan", "Half Pan", "Quart", "Squeeze Bottle", "Other"];
+
+function sectionStructKey(name: string) {
+  return `linecheck:section-items:${name}`;
+}
+
+function loadSectionStruct(name: string, fallback: EditCategory[]): EditCategory[] {
+  try {
+    const raw = localStorage.getItem(sectionStructKey(name));
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return fallback;
+}
 
 export const Route = createFileRoute("/section/$name")({
   head: ({ params }) => ({
