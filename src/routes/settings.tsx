@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell, useShellState, SECTION_ICONS } from "@/components/AppShell";
 import { SECTIONS, STAFF, STATUSES } from "@/lib/lineCheck";
 import {
@@ -12,7 +12,9 @@ import {
   Trash2,
   ChevronRight,
   ChevronDown,
+  Check,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
