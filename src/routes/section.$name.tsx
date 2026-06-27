@@ -131,6 +131,12 @@ function SectionPage() {
   const done = allItems.filter((i) => state.entries[i.name]?.[slot]?.status).length;
   const pct = total ? Math.round((done / total) * 100) : 0;
 
+  const missingNotes = allItems.filter((i) => {
+    const e = state.entries[i.name]?.[slot];
+    return e?.status && FLAG_STATUSES.has(e.status) && !e.note?.trim();
+  });
+  const canSave = missingNotes.length === 0;
+
   const setEntry = (item: string, patch: Partial<Entry>) => {
     setState((prev) => ({
       ...prev,
@@ -145,6 +151,7 @@ function SectionPage() {
       },
     }));
   };
+
 
   const toggleCheck = (item: string) => {
     const cur = state.entries[item]?.[slot]?.status;
