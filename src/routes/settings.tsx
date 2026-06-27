@@ -28,7 +28,7 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-type Tab = "stations" | "team" | "statuses";
+type Tab = "branding" | "stations" | "team" | "statuses";
 
 const ICON_OPTIONS = Object.keys(SECTION_ICONS);
 
