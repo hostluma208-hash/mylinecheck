@@ -13,6 +13,8 @@ import {
   ChevronRight,
   ChevronDown,
   Check,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 
 
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
 });
 
-type Tab = "stations" | "team" | "statuses";
+type Tab = "branding" | "stations" | "team" | "statuses";
 
 const ICON_OPTIONS = Object.keys(SECTION_ICONS);
 
@@ -50,7 +52,7 @@ function loadJSON<T>(key: string, fallback: T): T {
 
 function SettingsPage() {
   const shell = useShellState("Settings");
-  const [tab, setTab] = useState<Tab>("stations");
+  const [tab, setTab] = useState<Tab>("branding");
 
   return (
     <AppShell {...shell} title="Settings">
@@ -68,6 +70,9 @@ function SettingsPage() {
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">
+          <TabPill active={tab === "branding"} onClick={() => setTab("branding")} icon={<ImageIcon className="h-4 w-4" />}>
+            Branding
+          </TabPill>
           <TabPill active={tab === "stations"} onClick={() => setTab("stations")} icon={<Utensils className="h-4 w-4" />}>
             Stations & Items
           </TabPill>
@@ -79,11 +84,128 @@ function SettingsPage() {
           </TabPill>
         </div>
 
+        {tab === "branding" && <BrandingPanel />}
         {tab === "stations" && <StationsPanel />}
         {tab === "team" && <TeamPanel />}
         {tab === "statuses" && <StatusPanel />}
       </div>
     </AppShell>
+  );
+}
+
+/* ============= BRANDING ============= */
+
+const BRAND_NAME_KEY = "linecheck:settings:brand:name";
+const BRAND_LOGO_KEY = "linecheck:settings:brand:logo";
+
+function BrandingPanel() {
+  const [name, setName] = useState("LUMA");
+  const [logo, setLogo] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      setName(localStorage.getItem(BRAND_NAME_KEY) || "LUMA");
+      setLogo(localStorage.getItem(BRAND_LOGO_KEY));
+    } catch {}
+  }, []);
+
+  const saveName = (v: string) => {
+    setName(v);
+    try {
+      localStorage.setItem(BRAND_NAME_KEY, v);
+      window.dispatchEvent(new Event("linecheck:brand-update"));
+    } catch {}
+  };
+
+  const onFile = (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Please choose an image under 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      setLogo(dataUrl);
+      try {
+        localStorage.setItem(BRAND_LOGO_KEY, dataUrl);
+        window.dispatchEvent(new Event("linecheck:brand-update"));
+      } catch {
+        alert("Image too large to store locally.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => {
+    setLogo(null);
+    try {
+      localStorage.removeItem(BRAND_LOGO_KEY);
+      window.dispatchEvent(new Event("linecheck:brand-update"));
+    } catch {}
+  };
+
+  const initial = (name || "L").trim().charAt(0).toUpperCase() || "L";
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="flex flex-col gap-6 md:flex-row md:items-start">
+        <div className="flex flex-col items-center gap-3">
+          {logo ? (
+            <img src={logo} alt={name} className="h-24 w-24 rounded-2xl object-cover border border-border" />
+          ) : (
+            <span className="grid h-24 w-24 place-items-center rounded-2xl bg-foreground text-background text-3xl font-bold">
+              {initial}
+            </span>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90"
+            >
+              <Upload className="h-3.5 w-3.5" /> Upload
+            </button>
+            {logo && (
+              <button
+                onClick={removeLogo}
+                className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-danger hover:bg-danger-soft"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remove
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onFile(f);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        <div className="flex-1">
+          <label className="block text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Brand name
+          </label>
+          <input
+            value={name}
+            onChange={(e) => saveName(e.target.value)}
+            placeholder="LUMA"
+            className="mt-2 w-full rounded-full border border-border bg-background px-5 py-3 text-sm outline-none focus:border-foreground/30"
+          />
+          <p className="mt-3 text-xs text-muted-foreground">
+            Your branding and all settings are stored on this device only —
+            each account stays independent and your customizations are kept
+            across app updates.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 

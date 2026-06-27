@@ -113,11 +113,8 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
       }`}
     >
       <div className="flex items-center justify-between px-4 py-5">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-foreground text-background text-sm font-bold">
-            L
-          </span>
-          {!collapsed && <span className="text-base font-bold tracking-tight">LUMA</span>}
+        <Link to="/" className="flex items-center gap-2" suppressHydrationWarning>
+          <BrandMark collapsed={collapsed} />
         </Link>
         <button
           onClick={() => setCollapsed((c) => !c)}
@@ -161,7 +158,7 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
                   {!collapsed && (
                     <>
                       <span className="truncate">{s.name}</span>
-                      <span className="ml-auto flex items-center gap-2">
+                      <span className="ml-auto flex items-center gap-2" suppressHydrationWarning>
                         <span className="h-1 w-10 overflow-hidden rounded-full bg-muted">
                           <span
                             className="block h-full"
@@ -336,6 +333,47 @@ export function useShellState(initialTitle: string) {
   const [shift, setShift] = useState<Slot>(defaultShift());
   const [member, setMember] = useState("");
   return { date, setDate, shift, setShift, member, setMember, title: initialTitle };
+}
+
+function BrandMark({ collapsed }: { collapsed: boolean }) {
+  const [mounted, setMounted] = useState(false);
+  const [name, setName] = useState("LUMA");
+  const [logo, setLogo] = useState<string | null>(null);
+  useEffect(() => {
+    setMounted(true);
+    const refresh = () => {
+      try {
+        setName(localStorage.getItem("linecheck:settings:brand:name") || "LUMA");
+        setLogo(localStorage.getItem("linecheck:settings:brand:logo"));
+      } catch {}
+    };
+    refresh();
+    window.addEventListener("storage", refresh);
+    window.addEventListener("linecheck:brand-update", refresh);
+    return () => {
+      window.removeEventListener("storage", refresh);
+      window.removeEventListener("linecheck:brand-update", refresh);
+    };
+  }, []);
+  const initial = (name || "L").trim().charAt(0).toUpperCase() || "L";
+  return (
+    <>
+      {mounted && logo ? (
+        <img
+          src={logo}
+          alt={name}
+          className="h-8 w-8 rounded-lg object-cover"
+        />
+      ) : (
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-foreground text-background text-sm font-bold">
+          {initial}
+        </span>
+      )}
+      {!collapsed && (
+        <span className="text-base font-bold tracking-tight">{name}</span>
+      )}
+    </>
+  );
 }
 
 export { SECTION_ICONS };
