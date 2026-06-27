@@ -13,6 +13,8 @@ import {
   ChevronRight,
   ChevronDown,
   Check,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 
 
