@@ -235,6 +235,72 @@ function StationsPanel() {
   );
 }
 
+/* ============= ICON PICKER ============= */
+
+function IconPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const Current = SECTION_ICONS[value] ?? Utensils;
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Choose icon"
+        className="grid h-8 w-8 place-items-center rounded-md border border-border bg-background text-warning hover:bg-muted"
+      >
+        <Current className="h-4 w-4" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-10 z-30 w-56 rounded-xl border border-border bg-card p-2 shadow-lg">
+          <p className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+            Pick an icon
+          </p>
+          <div className="grid grid-cols-6 gap-1">
+            {ICON_OPTIONS.map((k) => {
+              const Ico = SECTION_ICONS[k] ?? Utensils;
+              const active = k === value;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => {
+                    onChange(k);
+                    setOpen(false);
+                  }}
+                  title={k}
+                  className={`relative grid h-8 w-8 place-items-center rounded-md border transition ${
+                    active
+                      ? "border-foreground bg-foreground text-background"
+                      : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <Ico className="h-4 w-4" />
+                  {active && (
+                    <Check className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-emerald-500 p-0.5 text-white" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+
 /* ============= TEAM ============= */
 
 function TeamPanel() {
