@@ -113,11 +113,8 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
       }`}
     >
       <div className="flex items-center justify-between px-4 py-5">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-foreground text-background text-sm font-bold">
-            L
-          </span>
-          {!collapsed && <span className="text-base font-bold tracking-tight">LUMA</span>}
+        <Link to="/" className="flex items-center gap-2" suppressHydrationWarning>
+          <BrandMark collapsed={collapsed} />
         </Link>
         <button
           onClick={() => setCollapsed((c) => !c)}
