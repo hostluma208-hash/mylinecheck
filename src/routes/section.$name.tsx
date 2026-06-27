@@ -455,13 +455,15 @@ function SectionPage() {
                   const flagged = status && FLAG_STATUSES.has(status);
                   const itemPct = checked ? 100 : 0;
 
+                  const noteMissing = flagged && !e?.note?.trim();
                   return (
                     <div
                       key={item.name}
-                      className={`flex items-center gap-3 rounded-2xl border bg-card px-3 py-2.5 transition ${
-                        flagged ? "border-rose-200" : "border-border"
+                      className={`rounded-2xl border bg-card transition ${
+                        noteMissing ? "border-rose-400 ring-1 ring-rose-200" : flagged ? "border-rose-200" : "border-border"
                       }`}
                     >
+                      <div className="flex items-center gap-3 px-3 py-2.5">
                       <button
                         onClick={() => toggleCheck(item.name)}
                         aria-label={checked ? "Uncheck item" : "Mark item OK"}
@@ -536,9 +538,34 @@ function SectionPage() {
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
+                      </div>
+                      {flagged && (
+                        <div className="border-t border-border/60 px-3 py-2.5">
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                              Corrective Note
+                            </label>
+                            {noteMissing && (
+                              <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-700">
+                                Required
+                              </span>
+                            )}
+                          </div>
+                          <textarea
+                            value={e?.note ?? ""}
+                            onChange={(ev) => setEntry(item.name, { note: ev.target.value })}
+                            placeholder={`Describe the issue (${status})…`}
+                            rows={2}
+                            className={`w-full resize-y rounded-md border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-foreground/40 ${
+                              noteMissing ? "border-rose-300" : "border-input"
+                            }`}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+
               </div>
             </section>
           ))}
