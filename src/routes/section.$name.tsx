@@ -131,6 +131,12 @@ function SectionPage() {
   const done = allItems.filter((i) => state.entries[i.name]?.[slot]?.status).length;
   const pct = total ? Math.round((done / total) * 100) : 0;
 
+  const missingNotes = allItems.filter((i) => {
+    const e = state.entries[i.name]?.[slot];
+    return e?.status && FLAG_STATUSES.has(e.status) && !e.note?.trim();
+  });
+  const canSave = missingNotes.length === 0;
+
   const setEntry = (item: string, patch: Partial<Entry>) => {
     setState((prev) => ({
       ...prev,
@@ -145,6 +151,7 @@ function SectionPage() {
       },
     }));
   };
+
 
   const toggleCheck = (item: string) => {
     const cur = state.entries[item]?.[slot]?.status;
@@ -167,6 +174,7 @@ function SectionPage() {
   };
 
   const saveCheck = () => {
+    if (!canSave) return;
     try {
       localStorage.setItem(key, JSON.stringify(state));
       window.dispatchEvent(new Event("linecheck:update"));
@@ -174,6 +182,7 @@ function SectionPage() {
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1400);
   };
+
 
   const enterEdit = () => {
     setDraft(JSON.parse(JSON.stringify(struct)));
@@ -272,10 +281,13 @@ function SectionPage() {
                 </button>
                 <button
                   onClick={saveCheck}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-xs font-semibold text-background hover:opacity-90"
+                  disabled={!canSave}
+                  title={!canSave ? `Add notes for ${missingNotes.length} flagged item(s)` : undefined}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-xs font-semibold text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Save className="h-3.5 w-3.5" /> {savedFlash ? "Saved!" : "Save Check"}
                 </button>
+
               </>
             )}
             {editMode && (
@@ -443,13 +455,15 @@ function SectionPage() {
                   const flagged = status && FLAG_STATUSES.has(status);
                   const itemPct = checked ? 100 : 0;
 
+                  const noteMissing = flagged && !e?.note?.trim();
                   return (
                     <div
                       key={item.name}
-                      className={`flex items-center gap-3 rounded-2xl border bg-card px-3 py-2.5 transition ${
-                        flagged ? "border-rose-200" : "border-border"
+                      className={`rounded-2xl border bg-card transition ${
+                        noteMissing ? "border-rose-400 ring-1 ring-rose-200" : flagged ? "border-rose-200" : "border-border"
                       }`}
                     >
+                      <div className="flex items-center gap-3 px-3 py-2.5">
                       <button
                         onClick={() => toggleCheck(item.name)}
                         aria-label={checked ? "Uncheck item" : "Mark item OK"}
@@ -524,9 +538,34 @@ function SectionPage() {
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
+                      </div>
+                      {flagged && (
+                        <div className="border-t border-border/60 px-3 py-2.5">
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                              Corrective Note
+                            </label>
+                            {noteMissing && (
+                              <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-700">
+                                Required
+                              </span>
+                            )}
+                          </div>
+                          <textarea
+                            value={e?.note ?? ""}
+                            onChange={(ev) => setEntry(item.name, { note: ev.target.value })}
+                            placeholder={`Describe the issue (${status})…`}
+                            rows={2}
+                            className={`w-full resize-y rounded-md border bg-background px-2.5 py-1.5 text-xs outline-none focus:border-foreground/40 ${
+                              noteMissing ? "border-rose-300" : "border-input"
+                            }`}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+
               </div>
             </section>
           ))}
