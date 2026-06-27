@@ -285,8 +285,9 @@ function SectionPage() {
                   title={!canSave ? `Add notes for ${missingNotes.length} flagged item(s)` : undefined}
                   className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-xs font-semibold text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-
+                  <Save className="h-3.5 w-3.5" /> {savedFlash ? "Saved!" : "Save Check"}
                 </button>
+
               </>
             )}
             {editMode && (
