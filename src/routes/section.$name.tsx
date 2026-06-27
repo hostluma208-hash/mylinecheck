@@ -174,6 +174,7 @@ function SectionPage() {
   };
 
   const saveCheck = () => {
+    if (!canSave) return;
     try {
       localStorage.setItem(key, JSON.stringify(state));
       window.dispatchEvent(new Event("linecheck:update"));
@@ -181,6 +182,7 @@ function SectionPage() {
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1400);
   };
+
 
   const enterEdit = () => {
     setDraft(JSON.parse(JSON.stringify(struct)));
