@@ -138,7 +138,12 @@ function StationsPanel() {
   const add = () => {
     const n = name.trim();
     if (!n) return;
-    setStations((s) => [{ name: n.toUpperCase(), icon: "Utensils", items: [] }, ...s]);
+    const used = new Set(stations.map((s) => s.icon));
+    const nextIcon =
+      ICON_OPTIONS.find((k) => !used.has(k)) ??
+      ICON_OPTIONS[stations.length % ICON_OPTIONS.length] ??
+      "Utensils";
+    setStations((s) => [{ name: n.toUpperCase(), icon: nextIcon, items: [] }, ...s]);
     setName("");
   };
 
@@ -178,27 +183,18 @@ function StationsPanel() {
                   {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </button>
 
-                <div className="relative">
-                  <select
-                    value={st.icon}
-                    onChange={(e) =>
-                      setStations((s) =>
-                        s.map((x, i) => (i === idx ? { ...x, icon: e.target.value } : x)),
-                      )
-                    }
-                    className="appearance-none rounded-md border border-border bg-background py-1 pl-2 pr-7 text-xs font-medium text-warning"
-                  >
-                    {ICON_OPTIONS.map((k) => (
-                      <option key={k} value={k}>
-                        {k}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-                </div>
+                <IconPicker
+                  value={st.icon}
+                  onChange={(v) =>
+                    setStations((s) =>
+                      s.map((x, i) => (i === idx ? { ...x, icon: v } : x)),
+                    )
+                  }
+                />
 
                 <Icon className="h-4 w-4 text-muted-foreground" />
                 <span className="font-bold tracking-tight">{st.name}</span>
+
 
                 <span className="ml-auto text-xs text-muted-foreground">
                   {st.items.length} cats
