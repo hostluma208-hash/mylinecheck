@@ -158,7 +158,7 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
                   {!collapsed && (
                     <>
                       <span className="truncate">{s.name}</span>
-                      <span className="ml-auto flex items-center gap-2">
+                      <span className="ml-auto flex items-center gap-2" suppressHydrationWarning>
                         <span className="h-1 w-10 overflow-hidden rounded-full bg-muted">
                           <span
                             className="block h-full"
