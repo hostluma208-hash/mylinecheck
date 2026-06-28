@@ -1,3 +1,4 @@
+import { lsStore } from "@/lib/lsStore";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell, useShellState } from "@/components/AppShell";
