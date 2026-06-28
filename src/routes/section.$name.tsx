@@ -226,6 +226,26 @@ function SectionPage() {
       ),
     );
 
+  const moveCat = (i: number, dir: -1 | 1) =>
+    setDraft((d) => {
+      const j = i + dir;
+      if (j < 0 || j >= d.length) return d;
+      const next = [...d];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  const moveItem = (ci: number, ii: number, dir: -1 | 1) =>
+    setDraft((d) =>
+      d.map((c, idx) => {
+        if (idx !== ci) return c;
+        const j = ii + dir;
+        if (j < 0 || j >= c.items.length) return c;
+        const items = [...c.items];
+        [items[ii], items[j]] = [items[j], items[ii]];
+        return { ...c, items };
+      }),
+    );
+
   const shiftLabel = slot === "op" ? "Opening" : slot === "mid" ? "Mid" : "Closing";
   const ringStyle = {
     background: `conic-gradient(var(--ring-color, hsl(258 90% 66%)) ${pct * 3.6}deg, hsl(var(--muted)) 0deg)`,
