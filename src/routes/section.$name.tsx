@@ -13,7 +13,7 @@ import {
   type SectionState,
   type Slot,
 } from "@/lib/lineCheck";
-import { Check, Edit3, Filter, MoreHorizontal, Save, Thermometer, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Edit3, Filter, MoreHorizontal, Save, Thermometer, Plus, Trash2, X } from "lucide-react";
 
 type EditItem = { name: string; quality: string; shelf: string; container: string };
 type EditCategory = { group: string; temp: boolean; items: EditItem[] };
