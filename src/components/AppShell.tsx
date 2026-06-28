@@ -101,9 +101,11 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
     const fn = () => setTick((t) => t + 1);
     window.addEventListener("storage", fn);
     window.addEventListener("linecheck:update", fn);
+    window.addEventListener("linecheck:scope-change", fn);
     return () => {
       window.removeEventListener("storage", fn);
       window.removeEventListener("linecheck:update", fn);
+      window.removeEventListener("linecheck:scope-change", fn);
     };
   }, []);
 
