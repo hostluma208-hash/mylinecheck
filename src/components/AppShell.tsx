@@ -289,13 +289,7 @@ function Pill({ icon, children }: { icon: React.ReactNode; children: React.React
 }
 
 function TeamMemberSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [members, setMembers] = useState<string[]>(() => {
-    try {
-      const raw = lsStore.getItem("linecheck:settings:staff");
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    return STAFF;
-  });
+  const [members, setMembers] = useState<string[]>(STAFF);
   useEffect(() => {
     const refresh = () => {
       try {
@@ -305,11 +299,14 @@ function TeamMemberSelect({ value, onChange }: { value: string; onChange: (v: st
         setMembers(STAFF);
       }
     };
+    refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("linecheck:staff-update", refresh);
+    window.addEventListener("linecheck:scope-change", refresh);
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener("linecheck:staff-update", refresh);
+      window.removeEventListener("linecheck:scope-change", refresh);
     };
   }, []);
   return (
