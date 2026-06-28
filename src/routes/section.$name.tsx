@@ -356,6 +356,24 @@ function SectionPage() {
             {draft.map((cat, ci) => (
               <div key={ci} className="rounded-xl border border-border bg-background/40 p-3">
                 <div className="flex items-center gap-2">
+                  <div className="flex flex-col">
+                    <button
+                      onClick={() => moveCat(ci, -1)}
+                      disabled={ci === 0}
+                      className="grid h-4 w-6 place-items-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
+                      aria-label="Move category up"
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => moveCat(ci, 1)}
+                      disabled={ci === draft.length - 1}
+                      className="grid h-4 w-6 place-items-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
+                      aria-label="Move category down"
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   <input
                     value={cat.group}
                     onChange={(e) => updateCat(ci, { group: e.target.value })}
@@ -387,6 +405,24 @@ function SectionPage() {
                   {cat.items.map((it, ii) => (
                     <div key={ii} className="space-y-1.5">
                       <div className="flex items-center gap-2">
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => moveItem(ci, ii, -1)}
+                            disabled={ii === 0}
+                            className="grid h-4 w-6 place-items-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
+                            aria-label="Move item up"
+                          >
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => moveItem(ci, ii, 1)}
+                            disabled={ii === cat.items.length - 1}
+                            className="grid h-4 w-6 place-items-center rounded text-muted-foreground hover:bg-accent disabled:opacity-30"
+                            aria-label="Move item down"
+                          >
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                         <input
                           value={it.name}
                           onChange={(e) => updateItem(ci, ii, { name: e.target.value })}
