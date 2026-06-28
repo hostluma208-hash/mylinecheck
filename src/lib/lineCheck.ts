@@ -1,4 +1,6 @@
 import data from "@/data/lineCheck.json";
+import { lsStore, getUserScope } from "@/lib/lsStore";
+
 
 export type Slot = "op" | "mid" | "cl";
 export type Entry = { status: string; note: string };
@@ -36,7 +38,7 @@ export function emptyEntry(): Entry {
 
 export function loadSection(name: string, date = todayISO()): SectionState {
   try {
-    const raw = localStorage.getItem(storageKey(name, date));
+    const raw = lsStore.getItem(storageKey(name, date));
     if (raw) return JSON.parse(raw);
   } catch {}
   return { date, opening: "", mid: "", closing: "", entries: {} };
@@ -95,10 +97,11 @@ export type DayHistory = {
 
 export function listHistoryDates(): string[] {
   const dates = new Set<string>();
+  // Touch scope so the function re-runs when scope changes elsewhere
+  void getUserScope();
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (!k || !k.startsWith("linecheck:")) continue;
+    for (const k of lsStore.keys()) {
+      if (!k.startsWith("linecheck:")) continue;
       const parts = k.split(":");
       const d = parts[parts.length - 1];
       if (/^\d{4}-\d{2}-\d{2}$/.test(d)) dates.add(d);
