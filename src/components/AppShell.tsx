@@ -29,6 +29,7 @@ import {
   Cake,
   Snowflake,
   Beer,
+  LogOut,
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -183,7 +184,44 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
           })}
         </ul>
       </div>
+      <SignOutButton collapsed={collapsed} />
     </aside>
+  );
+}
+
+function SignOutButton({ collapsed }: { collapsed: boolean }) {
+  const [email, setEmail] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      supabase.auth.getUser().then(({ data }) => {
+        if (active) setEmail(data.user?.email ?? null);
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const handle = async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    await supabase.auth.signOut();
+    window.location.href = "/auth";
+  };
+  return (
+    <div className="border-t border-sidebar-border px-3 py-3">
+      {!collapsed && email && (
+        <p className="mb-2 truncate px-2 text-[10px] text-muted-foreground" title={email}>
+          {email}
+        </p>
+      )}
+      <button
+        onClick={handle}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+      >
+        <LogOut className="h-4 w-4" />
+        {!collapsed && <span>Sign out</span>}
+      </button>
+    </div>
   );
 }
 
