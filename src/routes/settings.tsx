@@ -44,7 +44,7 @@ const STATUSES_KEY = "linecheck:settings:statuses";
 
 function loadJSON<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = lsStore.getItem(key);
     if (raw) return JSON.parse(raw);
   } catch {}
   return fallback;
@@ -105,15 +105,15 @@ function BrandingPanel() {
 
   useEffect(() => {
     try {
-      setName(localStorage.getItem(BRAND_NAME_KEY) || "LUMA");
-      setLogo(localStorage.getItem(BRAND_LOGO_KEY));
+      setName(lsStore.getItem(BRAND_NAME_KEY) || "LUMA");
+      setLogo(lsStore.getItem(BRAND_LOGO_KEY));
     } catch {}
   }, []);
 
   const saveName = (v: string) => {
     setName(v);
     try {
-      localStorage.setItem(BRAND_NAME_KEY, v);
+      lsStore.setItem(BRAND_NAME_KEY, v);
       window.dispatchEvent(new Event("linecheck:brand-update"));
     } catch {}
   };
@@ -129,7 +129,7 @@ function BrandingPanel() {
       const dataUrl = String(reader.result || "");
       setLogo(dataUrl);
       try {
-        localStorage.setItem(BRAND_LOGO_KEY, dataUrl);
+        lsStore.setItem(BRAND_LOGO_KEY, dataUrl);
         window.dispatchEvent(new Event("linecheck:brand-update"));
       } catch {
         alert("Image too large to store locally.");
@@ -141,7 +141,7 @@ function BrandingPanel() {
   const removeLogo = () => {
     setLogo(null);
     try {
-      localStorage.removeItem(BRAND_LOGO_KEY);
+      lsStore.removeItem(BRAND_LOGO_KEY);
       window.dispatchEvent(new Event("linecheck:brand-update"));
     } catch {}
   };
@@ -254,7 +254,7 @@ function StationsPanel() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    localStorage.setItem(STATIONS_KEY, JSON.stringify(stations));
+    lsStore.setItem(STATIONS_KEY, JSON.stringify(stations));
   }, [stations]);
 
   const add = () => {
@@ -430,7 +430,7 @@ function TeamPanel() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    localStorage.setItem(STAFF_KEY, JSON.stringify(members));
+    lsStore.setItem(STAFF_KEY, JSON.stringify(members));
     window.dispatchEvent(new Event("linecheck:staff-update"));
   }, [members]);
 
@@ -488,7 +488,7 @@ function StatusPanel() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    localStorage.setItem(STATUSES_KEY, JSON.stringify(statuses));
+    lsStore.setItem(STATUSES_KEY, JSON.stringify(statuses));
   }, [statuses]);
 
   const add = () => {

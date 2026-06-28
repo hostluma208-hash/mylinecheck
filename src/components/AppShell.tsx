@@ -290,7 +290,7 @@ function Pill({ icon, children }: { icon: React.ReactNode; children: React.React
 function TeamMemberSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [members, setMembers] = useState<string[]>(() => {
     try {
-      const raw = localStorage.getItem("linecheck:settings:staff");
+      const raw = lsStore.getItem("linecheck:settings:staff");
       if (raw) return JSON.parse(raw);
     } catch {}
     return STAFF;
@@ -298,7 +298,7 @@ function TeamMemberSelect({ value, onChange }: { value: string; onChange: (v: st
   useEffect(() => {
     const refresh = () => {
       try {
-        const raw = localStorage.getItem("linecheck:settings:staff");
+        const raw = lsStore.getItem("linecheck:settings:staff");
         setMembers(raw ? JSON.parse(raw) : STAFF);
       } catch {
         setMembers(STAFF);
@@ -343,8 +343,8 @@ function BrandMark({ collapsed }: { collapsed: boolean }) {
     setMounted(true);
     const refresh = () => {
       try {
-        setName(localStorage.getItem("linecheck:settings:brand:name") || "LUMA");
-        setLogo(localStorage.getItem("linecheck:settings:brand:logo"));
+        setName(lsStore.getItem("linecheck:settings:brand:name") || "LUMA");
+        setLogo(lsStore.getItem("linecheck:settings:brand:logo"));
       } catch {}
     };
     refresh();
