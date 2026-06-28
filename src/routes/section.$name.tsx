@@ -1,3 +1,4 @@
+import { lsStore } from "@/lib/lsStore";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell, useShellState } from "@/components/AppShell";
@@ -26,7 +27,7 @@ function sectionStructKey(name: string) {
 
 function loadSectionStruct(name: string, fallback: EditCategory[]): EditCategory[] {
   try {
-    const raw = localStorage.getItem(sectionStructKey(name));
+    const raw = lsStore.getItem(sectionStructKey(name));
     if (raw) return JSON.parse(raw);
   } catch {}
   return fallback;
@@ -118,7 +119,7 @@ function SectionPage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(state));
+      lsStore.setItem(key, JSON.stringify(state));
       window.dispatchEvent(new Event("linecheck:update"));
     } catch {}
   }, [key, state]);
@@ -176,7 +177,7 @@ function SectionPage() {
   const saveCheck = () => {
     if (!canSave) return;
     try {
-      localStorage.setItem(key, JSON.stringify(state));
+      lsStore.setItem(key, JSON.stringify(state));
       window.dispatchEvent(new Event("linecheck:update"));
     } catch {}
     setSavedFlash(true);
@@ -194,7 +195,7 @@ function SectionPage() {
   };
   const saveCategories = () => {
     try {
-      localStorage.setItem(sectionStructKey(name), JSON.stringify(draft));
+      lsStore.setItem(sectionStructKey(name), JSON.stringify(draft));
     } catch {}
     setStruct(draft);
     setEditMode(false);

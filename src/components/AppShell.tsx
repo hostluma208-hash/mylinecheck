@@ -1,3 +1,4 @@
+import { lsStore } from "@/lib/lsStore";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
@@ -28,6 +29,7 @@ import {
   Cake,
   Snowflake,
   Beer,
+  LogOut,
 } from "lucide-react";
 
 const SECTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -100,9 +102,11 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
     const fn = () => setTick((t) => t + 1);
     window.addEventListener("storage", fn);
     window.addEventListener("linecheck:update", fn);
+    window.addEventListener("linecheck:scope-change", fn);
     return () => {
       window.removeEventListener("storage", fn);
       window.removeEventListener("linecheck:update", fn);
+      window.removeEventListener("linecheck:scope-change", fn);
     };
   }, []);
 
@@ -180,7 +184,44 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
           })}
         </ul>
       </div>
+      <SignOutButton collapsed={collapsed} />
     </aside>
+  );
+}
+
+function SignOutButton({ collapsed }: { collapsed: boolean }) {
+  const [email, setEmail] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    import("@/integrations/supabase/client").then(({ supabase }) => {
+      supabase.auth.getUser().then(({ data }) => {
+        if (active) setEmail(data.user?.email ?? null);
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const handle = async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    await supabase.auth.signOut();
+    window.location.href = "/auth";
+  };
+  return (
+    <div className="border-t border-sidebar-border px-3 py-3">
+      {!collapsed && email && (
+        <p className="mb-2 truncate px-2 text-[10px] text-muted-foreground" title={email}>
+          {email}
+        </p>
+      )}
+      <button
+        onClick={handle}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"
+      >
+        <LogOut className="h-4 w-4" />
+        {!collapsed && <span>Sign out</span>}
+      </button>
+    </div>
   );
 }
 
@@ -288,27 +329,24 @@ function Pill({ icon, children }: { icon: React.ReactNode; children: React.React
 }
 
 function TeamMemberSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [members, setMembers] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem("linecheck:settings:staff");
-      if (raw) return JSON.parse(raw);
-    } catch {}
-    return STAFF;
-  });
+  const [members, setMembers] = useState<string[]>(STAFF);
   useEffect(() => {
     const refresh = () => {
       try {
-        const raw = localStorage.getItem("linecheck:settings:staff");
+        const raw = lsStore.getItem("linecheck:settings:staff");
         setMembers(raw ? JSON.parse(raw) : STAFF);
       } catch {
         setMembers(STAFF);
       }
     };
+    refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("linecheck:staff-update", refresh);
+    window.addEventListener("linecheck:scope-change", refresh);
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener("linecheck:staff-update", refresh);
+      window.removeEventListener("linecheck:scope-change", refresh);
     };
   }, []);
   return (
@@ -343,16 +381,18 @@ function BrandMark({ collapsed }: { collapsed: boolean }) {
     setMounted(true);
     const refresh = () => {
       try {
-        setName(localStorage.getItem("linecheck:settings:brand:name") || "LUMA");
-        setLogo(localStorage.getItem("linecheck:settings:brand:logo"));
+        setName(lsStore.getItem("linecheck:settings:brand:name") || "LUMA");
+        setLogo(lsStore.getItem("linecheck:settings:brand:logo"));
       } catch {}
     };
     refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("linecheck:brand-update", refresh);
+    window.addEventListener("linecheck:scope-change", refresh);
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener("linecheck:brand-update", refresh);
+      window.removeEventListener("linecheck:scope-change", refresh);
     };
   }, []);
   const initial = (name || "L").trim().charAt(0).toUpperCase() || "L";
