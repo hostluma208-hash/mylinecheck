@@ -388,9 +388,11 @@ function BrandMark({ collapsed }: { collapsed: boolean }) {
     refresh();
     window.addEventListener("storage", refresh);
     window.addEventListener("linecheck:brand-update", refresh);
+    window.addEventListener("linecheck:scope-change", refresh);
     return () => {
       window.removeEventListener("storage", refresh);
       window.removeEventListener("linecheck:brand-update", refresh);
+      window.removeEventListener("linecheck:scope-change", refresh);
     };
   }, []);
   const initial = (name || "L").trim().charAt(0).toUpperCase() || "L";
