@@ -102,13 +102,19 @@ function ShiftDetail() {
   }, [date, shift, tick]);
 
   const share = async () => {
-    const url = `${window.location.origin}/history/shift?date=${date}&shift=${shift}`;
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch {
-      window.prompt("Copy share link:", url);
+      const { publishSharedShift } = await import("@/lib/share");
+      const url = await publishSharedShift(date, shift);
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+      } catch {
+        window.prompt("Copy share link:", url);
+      }
+    } catch (e) {
+      console.error(e);
+      window.alert("Could not create share link. Please try again.");
     }
   };
 
