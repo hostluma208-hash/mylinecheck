@@ -3,9 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell, useShellState } from "@/components/AppShell";
 import {
   SECTIONS,
-  dayHistory,
   listHistoryDates,
-  type DayHistory,
+  shiftHistory,
+  SLOT_LABEL,
+  type ShiftHistory,
+  type Slot,
 } from "@/lib/lineCheck";
 import {
   ArrowLeft,
@@ -14,6 +16,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   Filter,
+  User,
+  Share2,
+  Sunrise,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 export const Route = createFileRoute("/history")({
@@ -29,38 +36,64 @@ export const Route = createFileRoute("/history")({
   component: HistoryPage,
 });
 
+const SLOT_ORDER: Slot[] = ["op", "mid", "cl"];
+const SLOT_ICON: Record<Slot, React.ComponentType<{ className?: string }>> = {
+  op: Sunrise,
+  mid: Sun,
+  cl: Moon,
+};
+
 function HistoryPage() {
   const shell = useShellState("History");
   const navigate = useNavigate();
   const [station, setStation] = useState<string>("ALL");
   const [shiftFilter, setShiftFilter] = useState<string>("ALL");
   const [tick, setTick] = useState(0);
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     const fn = () => setTick((t) => t + 1);
     window.addEventListener("storage", fn);
     window.addEventListener("linecheck:update", fn);
+    window.addEventListener("linecheck:scope-change", fn);
     return () => {
       window.removeEventListener("storage", fn);
       window.removeEventListener("linecheck:update", fn);
+      window.removeEventListener("linecheck:scope-change", fn);
     };
   }, []);
 
-  const { days, totals } = useMemo(() => {
+  const { grouped, totals } = useMemo(() => {
     const dates = listHistoryDates();
-    const days: DayHistory[] = dates.map((d) => dayHistory(d));
-    const totals = days.reduce(
-      (acc, d) => {
-        acc.checks += d.stationsTouched;
-        acc.complete += d.stationsComplete;
-        acc.flagged += d.flagged;
-        return acc;
-      },
-      { checks: 0, complete: 0, flagged: 0 },
-    );
-    return { days, totals };
+    const grouped: { date: string; shifts: ShiftHistory[] }[] = [];
+    const totals = { checks: 0, complete: 0, flagged: 0 };
+    for (const d of dates) {
+      const shifts: ShiftHistory[] = [];
+      for (const slot of SLOT_ORDER) {
+        if (shiftFilter !== "ALL" && slot !== shiftFilter) continue;
+        const sh = shiftHistory(d, slot);
+        if (sh.stationsTouched === 0) continue;
+        shifts.push(sh);
+        totals.checks += sh.stationsTouched;
+        totals.complete += sh.stationsComplete;
+        totals.flagged += sh.flagged;
+      }
+      if (shifts.length > 0) grouped.push({ date: d, shifts });
+    }
+    return { grouped, totals };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tick, station, shiftFilter]);
+
+  const share = async (date: string, slot: Slot) => {
+    const url = `${window.location.origin}/history/shift?date=${date}&shift=${slot}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(`${date}:${slot}`);
+      setTimeout(() => setCopied(null), 1600);
+    } catch {
+      window.prompt("Copy share link:", url);
+    }
+  };
 
   return (
     <AppShell {...shell}>
@@ -81,7 +114,7 @@ function HistoryPage() {
           <h3 className="text-xl font-bold tracking-tight">Shift History</h3>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Past line checks, completion trends, and recurring issues
+          Past line checks per shift, completion trends, and shareable links
         </p>
 
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -119,16 +152,22 @@ function HistoryPage() {
         Past Shifts
       </h2>
 
-      {days.length === 0 ? (
+      {grouped.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
           No past shifts yet. Complete a line check to start building history.
         </div>
       ) : (
-        <ul className="space-y-3">
-          {days.map((d) => (
-            <DayRow key={d.date} day={d} />
+        <div className="space-y-6">
+          {grouped.map(({ date, shifts }) => (
+            <DayBlock
+              key={date}
+              date={date}
+              shifts={shifts}
+              onShare={share}
+              copied={copied}
+            />
           ))}
-        </ul>
+        </div>
       )}
     </AppShell>
   );
@@ -177,59 +216,131 @@ function FilterSelect({
   );
 }
 
-function DayRow({ day }: { day: DayHistory }) {
-  const d = new Date(day.date + "T00:00:00");
+function DayBlock({
+  date,
+  shifts,
+  onShare,
+  copied,
+}: {
+  date: string;
+  shifts: ShiftHistory[];
+  onShare: (date: string, slot: Slot) => void;
+  copied: string | null;
+}) {
+  const d = new Date(date + "T00:00:00");
   const weekday = d.toLocaleDateString(undefined, { weekday: "long" });
   const dayNum = d.toLocaleDateString(undefined, { day: "2-digit" });
   const short = d.toLocaleDateString(undefined, {
     weekday: "short",
     day: "numeric",
     month: "short",
+    year: "numeric",
   });
-  const pct = day.totalItems ? Math.round((day.checkedItems / day.totalItems) * 100) : 0;
 
   return (
-    <li>
-      <Link
-        to="/"
-        className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-accent"
-      >
-        <div className="flex w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-muted/50 py-2">
+    <div>
+      <div className="mb-2 flex items-center gap-3 px-1">
+        <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-muted/50 py-1.5">
           <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-            {weekday}
+            {weekday.slice(0, 3)}
           </span>
-          <span className="text-2xl font-black tabular-nums text-foreground">{dayNum}</span>
+          <span className="text-xl font-black tabular-nums text-foreground">{dayNum}</span>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">{short}</p>
-          <p className="text-xs text-muted-foreground">
-            {day.stationsTouched} station {day.stationsTouched === 1 ? "check" : "checks"}
-          </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px]">
-            {day.stationsComplete > 0 && (
-              <span className="inline-flex items-center gap-1 font-medium text-success">
-                <CheckCircle2 className="h-3 w-3" />
-                {day.stationsComplete} complete
-              </span>
-            )}
-            {day.flagged > 0 && (
-              <span className="inline-flex items-center gap-1 font-medium text-danger">
-                <AlertTriangle className="h-3 w-3" />
-                {day.flagged} flagged
-              </span>
-            )}
+        <p className="text-sm font-semibold text-foreground">{short}</p>
+      </div>
+      <ul className="space-y-2 border-l-2 border-dashed border-border pl-4">
+        {shifts.map((sh) => (
+          <ShiftRow
+            key={sh.slot}
+            sh={sh}
+            onShare={() => onShare(date, sh.slot)}
+            copied={copied === `${date}:${sh.slot}`}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ShiftRow({
+  sh,
+  onShare,
+  copied,
+}: {
+  sh: ShiftHistory;
+  onShare: () => void;
+  copied: boolean;
+}) {
+  const pct = sh.totalItems ? Math.round((sh.checkedItems / sh.totalItems) * 100) : 0;
+  const Icon = SLOT_ICON[sh.slot];
+
+  return (
+    <li className="relative">
+      <span className="absolute -left-[22px] top-1/2 grid h-4 w-4 -translate-y-1/2 place-items-center rounded-full border-2 border-background bg-foreground/70" />
+      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+        <Link
+          to="/history/shift"
+          search={{ date: sh.date, shift: sh.slot }}
+          className="flex min-w-0 flex-1 items-center gap-3"
+        >
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted/60">
+            <Icon className="h-4 w-4 text-foreground" />
           </div>
-        </div>
-        <div className="hidden w-32 sm:block">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${pct}%`, background: "var(--gradient-readiness)" }}
-            />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <p className="text-sm font-bold tracking-tight">{SLOT_LABEL[sh.slot]}</p>
+              {sh.member && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                  <User className="h-3 w-3" />
+                  {sh.member}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {sh.stationsTouched} station {sh.stationsTouched === 1 ? "check" : "checks"} ·{" "}
+              {sh.checkedItems}/{sh.totalItems} items
+            </p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px]">
+              {sh.stationsComplete > 0 && (
+                <span className="inline-flex items-center gap-1 font-medium text-success">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {sh.stationsComplete} complete
+                </span>
+              )}
+              {sh.flagged > 0 && (
+                <span className="inline-flex items-center gap-1 font-medium text-danger">
+                  <AlertTriangle className="h-3 w-3" />
+                  {sh.flagged} flagged
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      </Link>
+          <div className="hidden w-32 sm:block">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${pct}%`, background: "var(--gradient-readiness)" }}
+              />
+            </div>
+            <p className="mt-1 text-right text-[10px] font-semibold tabular-nums text-muted-foreground">
+              {pct}%
+            </p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
+        <button
+          onClick={onShare}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label="Copy share link"
+          title={copied ? "Link copied!" : "Copy share link"}
+        >
+          {copied ? (
+            <CheckCircle2 className="h-4 w-4 text-success" />
+          ) : (
+            <Share2 className="h-4 w-4" />
+          )}
+        </button>
+      </div>
     </li>
   );
 }
