@@ -85,13 +85,20 @@ function HistoryPage() {
   }, [tick, station, shiftFilter]);
 
   const share = async (date: string, slot: Slot) => {
-    const url = `${window.location.origin}/history/shift?date=${date}&shift=${slot}`;
+    const key = `${date}:${slot}`;
     try {
-      await navigator.clipboard.writeText(url);
-      setCopied(`${date}:${slot}`);
-      setTimeout(() => setCopied(null), 1600);
-    } catch {
-      window.prompt("Copy share link:", url);
+      const { publishSharedShift } = await import("@/lib/share");
+      const url = await publishSharedShift(date, slot);
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(key);
+        setTimeout(() => setCopied(null), 1600);
+      } catch {
+        window.prompt("Copy share link:", url);
+      }
+    } catch (e) {
+      console.error(e);
+      window.alert("Could not create share link. Please try again.");
     }
   };
 
