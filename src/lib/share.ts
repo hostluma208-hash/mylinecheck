@@ -53,7 +53,7 @@ export async function publishSharedShift(date: string, slot: Slot): Promise<stri
         shift: slot,
         member: payload.member || null,
         brand_name: payload.brand_name,
-        payload: payload as unknown as Record<string, unknown>,
+        payload: JSON.parse(JSON.stringify(payload)),
         updated_at: new Date().toISOString(),
       },
       { onConflict: "owner_id,date,shift" },
