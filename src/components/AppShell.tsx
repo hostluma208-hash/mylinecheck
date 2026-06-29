@@ -369,7 +369,35 @@ function TeamMemberSelect({ value, onChange }: { value: string; onChange: (v: st
 export function useShellState(initialTitle: string) {
   const [date, setDate] = useState(todayISO());
   const [shift, setShift] = useState<Slot>(defaultShift());
-  const [member, setMember] = useState("");
+  const [member, setMemberState] = useState("");
+
+  // Load member for the current (date, shift) whenever it changes.
+  useEffect(() => {
+    import("@/lib/lineCheck").then(({ loadMember }) => {
+      setMemberState(loadMember(date, shift));
+    });
+  }, [date, shift]);
+
+  // Refresh when scope changes (sign in/out) or other tabs update.
+  useEffect(() => {
+    const refresh = () => {
+      import("@/lib/lineCheck").then(({ loadMember }) => {
+        setMemberState(loadMember(date, shift));
+      });
+    };
+    window.addEventListener("linecheck:scope-change", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("linecheck:scope-change", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, [date, shift]);
+
+  const setMember = (v: string) => {
+    setMemberState(v);
+    import("@/lib/lineCheck").then(({ saveMember }) => saveMember(date, shift, v));
+  };
+
   return { date, setDate, shift, setShift, member, setMember, title: initialTitle };
 }
 
