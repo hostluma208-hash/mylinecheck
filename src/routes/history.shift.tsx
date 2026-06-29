@@ -43,7 +43,7 @@ export const Route = createFileRoute("/history/shift")({
 });
 
 function ShiftDetail() {
-  const { date, shift } = Route.useSearch();
+  const { date, shift } = Route.useSearch() as { date: string; shift: Slot };
   const shell = useShellState(`${SLOT_LABEL[shift]} — ${date}`);
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
