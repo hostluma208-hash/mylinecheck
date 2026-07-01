@@ -64,6 +64,13 @@ function loadSectionStruct(name: string, fallback: EditCategory[]): EditCategory
 }
 
 export const Route = createFileRoute("/section/$name")({
+  validateSearch: (s: Record<string, unknown>) =>
+    z
+      .object({
+        date: z.string().optional(),
+        shift: z.enum(["op", "mid", "cl"]).optional(),
+      })
+      .parse(s),
   head: ({ params }) => ({
     meta: [
       { title: `${params.name} — Line Check` },
