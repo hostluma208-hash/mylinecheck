@@ -163,13 +163,9 @@ function Dashboard() {
               No flagged items for this shift. 🎉
             </li>
           )}
-          {stats.flagged.map((row) => (
-            <li key={`${row.section}-${row.item}`}>
-              <Link
-                to="/section/$name"
-                params={{ name: row.section }}
-                className="flex items-center gap-3 px-6 py-3.5 hover:bg-accent"
-              >
+          {stats.flagged.map((row) => {
+            const rowInner = (
+              <>
                 <span className="grid h-7 w-7 place-items-center rounded-full bg-danger-soft text-danger">
                   <AlertTriangle className="h-3.5 w-3.5" />
                 </span>
@@ -187,9 +183,30 @@ function Dashboard() {
                   {row.status}
                 </span>
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            </li>
-          ))}
+              </>
+            );
+            return (
+              <li key={`${row.section}-${row.item}`}>
+                {shell.member ? (
+                  <Link
+                    to="/section/$name"
+                    params={{ name: row.section }}
+                    className="flex items-center gap-3 px-6 py-3.5 hover:bg-accent"
+                  >
+                    {rowInner}
+                  </Link>
+                ) : (
+                  <div
+                    aria-disabled
+                    title="Select a team member first"
+                    className="flex cursor-not-allowed items-center gap-3 px-6 py-3.5 opacity-60"
+                  >
+                    {rowInner}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
