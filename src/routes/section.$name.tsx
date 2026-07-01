@@ -14,6 +14,7 @@ import {
   type Slot,
 } from "@/lib/lineCheck";
 import { Check, ChevronDown, ChevronUp, Edit3, Filter, MoreHorizontal, Save, Thermometer, Plus, Trash2, X } from "lucide-react";
+import { z } from "zod";
 
 type EditItem = { name: string; quality: string; shelf: string; container: string };
 type EditCategory = { group: string; temp: boolean; items: EditItem[] };
@@ -63,6 +64,13 @@ function loadSectionStruct(name: string, fallback: EditCategory[]): EditCategory
 }
 
 export const Route = createFileRoute("/section/$name")({
+  validateSearch: (s: Record<string, unknown>) =>
+    z
+      .object({
+        date: z.string().optional(),
+        shift: z.enum(["op", "mid", "cl"]).optional(),
+      })
+      .parse(s),
   head: ({ params }) => ({
     meta: [
       { title: `${params.name} — Line Check` },
@@ -118,8 +126,16 @@ function buildDefaultStruct(section: { items: Array<{ name: string; group?: stri
 
 function SectionPage() {
   const { name } = Route.useParams();
+  const search = Route.useSearch() as { date?: string; shift?: Slot };
   const section = SECTIONS.find((s) => s.name === name);
   const shell = useShellState(name);
+
+  // Sync shell to search params when reopening a past shift from history.
+  useEffect(() => {
+    if (search.date && search.date !== shell.date) shell.setDate(search.date);
+    if (search.shift && search.shift !== shell.shift) shell.setShift(search.shift);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.date, search.shift]);
 
   const key = useMemo(() => storageKey(name, shell.date), [name, shell.date]);
   const [state, setState] = useState<SectionState>(() => loadSection(name, shell.date));

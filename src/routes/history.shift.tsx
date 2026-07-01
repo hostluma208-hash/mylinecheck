@@ -18,6 +18,7 @@ import {
   User,
   Calendar,
   Clock,
+  Edit3,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -195,9 +196,21 @@ function ShiftDetail() {
         <div className="mt-6 space-y-5">
           {rows.map((r) => (
             <section key={r.section}>
-              <h3 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                {r.section}
-              </h3>
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  {r.section}
+                </h3>
+                <Link
+                  to="/section/$name"
+                  params={{ name: r.section }}
+                  search={{ date, shift }}
+                  className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground hover:bg-accent"
+                  title="Reopen this shift for editing"
+                >
+                  <Edit3 className="h-3 w-3" />
+                  Reopen
+                </Link>
+              </div>
               <ul className="space-y-2">
                 {r.items.map((it) => (
                   <li

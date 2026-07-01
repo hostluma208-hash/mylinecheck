@@ -10,7 +10,7 @@ import {
   type ShiftHistory,
   type Slot,
 } from "@/lib/lineCheck";
-import { supabase } from "@/integrations/supabase/client";
+
 import {
   ArrowLeft,
   Calendar,
@@ -386,18 +386,8 @@ function ClearHistoryModal({
     setBusy(true);
     setError(null);
     try {
-      const { data: userRes, error: uErr } = await supabase.auth.getUser();
-      if (uErr || !userRes.user?.email) {
-        setError("You need to be signed in to clear history.");
-        setBusy(false);
-        return;
-      }
-      const { error: signErr } = await supabase.auth.signInWithPassword({
-        email: userRes.user.email,
-        password,
-      });
-      if (signErr) {
-        setError("Incorrect password. Please try again.");
+      if (password !== "DELETE") {
+        setError('Type DELETE (all caps) to confirm.');
         setBusy(false);
         return;
       }
@@ -452,17 +442,18 @@ function ClearHistoryModal({
         ) : (
           <form onSubmit={submit} className="space-y-3">
             <label className="block text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
-              Confirm your password
+              Type <span className="font-mono text-danger">DELETE</span> to confirm
             </label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                type="password"
+                type="text"
                 autoFocus
+                autoComplete="off"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your account password"
-                className="w-full rounded-full border border-border bg-background py-2.5 pl-9 pr-4 text-sm outline-none focus:border-foreground/30"
+                placeholder="DELETE"
+                className="w-full rounded-full border border-border bg-background py-2.5 pl-9 pr-4 text-sm font-mono tracking-widest outline-none focus:border-foreground/30"
                 required
               />
             </div>
@@ -479,10 +470,10 @@ function ClearHistoryModal({
               </button>
               <button
                 type="submit"
-                disabled={busy || !password}
+                disabled={busy || password !== "DELETE"}
                 className="flex-1 rounded-full bg-danger py-2 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-50"
               >
-                {busy ? "Verifying…" : "Clear history"}
+                {busy ? "Clearing…" : "Clear history"}
               </button>
             </div>
           </form>

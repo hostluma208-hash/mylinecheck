@@ -7,7 +7,7 @@ import {
   sectionProgress,
   type FlaggedRow,
 } from "@/lib/lineCheck";
-import { ArrowRight, CheckCircle2, AlertTriangle, Utensils } from "lucide-react";
+import { ArrowRight, CheckCircle2, AlertTriangle, Utensils, UserCog } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -80,6 +80,17 @@ function Dashboard() {
 
   return (
     <AppShell {...shell}>
+      {!shell.member && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-danger/40 bg-danger-soft px-4 py-3 text-sm text-danger">
+          <UserCog className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex-1">
+            <p className="font-bold">Select a team member to start</p>
+            <p className="text-xs opacity-80">
+              Pick your name from the Team Member picker in the top bar before opening a station.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Hero readiness card */}
       <section className="rounded-3xl border border-border bg-card p-6 lg:p-8">
         <p className="text-sm text-muted-foreground">
@@ -152,13 +163,9 @@ function Dashboard() {
               No flagged items for this shift. 🎉
             </li>
           )}
-          {stats.flagged.map((row) => (
-            <li key={`${row.section}-${row.item}`}>
-              <Link
-                to="/section/$name"
-                params={{ name: row.section }}
-                className="flex items-center gap-3 px-6 py-3.5 hover:bg-accent"
-              >
+          {stats.flagged.map((row) => {
+            const rowInner = (
+              <>
                 <span className="grid h-7 w-7 place-items-center rounded-full bg-danger-soft text-danger">
                   <AlertTriangle className="h-3.5 w-3.5" />
                 </span>
@@ -176,9 +183,30 @@ function Dashboard() {
                   {row.status}
                 </span>
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            </li>
-          ))}
+              </>
+            );
+            return (
+              <li key={`${row.section}-${row.item}`}>
+                {shell.member ? (
+                  <Link
+                    to="/section/$name"
+                    params={{ name: row.section }}
+                    className="flex items-center gap-3 px-6 py-3.5 hover:bg-accent"
+                  >
+                    {rowInner}
+                  </Link>
+                ) : (
+                  <div
+                    aria-disabled
+                    title="Select a team member first"
+                    className="flex cursor-not-allowed items-center gap-3 px-6 py-3.5 opacity-60"
+                  >
+                    {rowInner}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -190,13 +218,8 @@ function Dashboard() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {stats.perStation.map((s) => {
             const Icon = SECTION_ICONS[s.name] ?? Utensils;
-            return (
-              <Link
-                key={s.name}
-                to="/section/$name"
-                params={{ name: s.name }}
-                className="group rounded-2xl border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-sm"
-              >
+            const cardInner = (
+              <>
                 <div className="flex items-center gap-3">
                   <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-foreground">
                     <Icon className="h-4 w-4" />
@@ -218,6 +241,28 @@ function Dashboard() {
                     }}
                   />
                 </div>
+              </>
+            );
+            if (!shell.member) {
+              return (
+                <div
+                  key={s.name}
+                  aria-disabled
+                  title="Select a team member first"
+                  className="group cursor-not-allowed rounded-2xl border border-dashed border-border bg-card p-4 opacity-60"
+                >
+                  {cardInner}
+                </div>
+              );
+            }
+            return (
+              <Link
+                key={s.name}
+                to="/section/$name"
+                params={{ name: s.name }}
+                className="group rounded-2xl border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-sm"
+              >
+                {cardInner}
               </Link>
             );
           })}
