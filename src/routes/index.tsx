@@ -80,6 +80,17 @@ function Dashboard() {
 
   return (
     <AppShell {...shell}>
+      {!shell.member && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-danger/40 bg-danger-soft px-4 py-3 text-sm text-danger">
+          <UserCog className="mt-0.5 h-4 w-4 shrink-0" />
+          <div className="flex-1">
+            <p className="font-bold">Select a team member to start</p>
+            <p className="text-xs opacity-80">
+              Pick your name from the Team Member picker in the top bar before opening a station.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Hero readiness card */}
       <section className="rounded-3xl border border-border bg-card p-6 lg:p-8">
         <p className="text-sm text-muted-foreground">
