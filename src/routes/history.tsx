@@ -470,10 +470,10 @@ function ClearHistoryModal({
               </button>
               <button
                 type="submit"
-                disabled={busy || !password}
+                disabled={busy || password !== "DELETE"}
                 className="flex-1 rounded-full bg-danger py-2 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-50"
               >
-                {busy ? "Verifying…" : "Clear history"}
+                {busy ? "Clearing…" : "Clear history"}
               </button>
             </div>
           </form>
