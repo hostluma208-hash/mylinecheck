@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      section_checks: {
+        Row: {
+          check_date: string
+          data: Json
+          section_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          check_date: string
+          data: Json
+          section_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          check_date?: string
+          data?: Json
+          section_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      section_structs: {
+        Row: {
+          data: Json
+          section_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          data: Json
+          section_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          data?: Json
+          section_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       shared_shifts: {
         Row: {
           brand_name: string | null
