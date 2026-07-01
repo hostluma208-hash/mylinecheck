@@ -218,13 +218,8 @@ function Dashboard() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {stats.perStation.map((s) => {
             const Icon = SECTION_ICONS[s.name] ?? Utensils;
-            return (
-              <Link
-                key={s.name}
-                to="/section/$name"
-                params={{ name: s.name }}
-                className="group rounded-2xl border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-sm"
-              >
+            const cardInner = (
+              <>
                 <div className="flex items-center gap-3">
                   <span className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-foreground">
                     <Icon className="h-4 w-4" />
@@ -246,6 +241,28 @@ function Dashboard() {
                     }}
                   />
                 </div>
+              </>
+            );
+            if (!shell.member) {
+              return (
+                <div
+                  key={s.name}
+                  aria-disabled
+                  title="Select a team member first"
+                  className="group cursor-not-allowed rounded-2xl border border-dashed border-border bg-card p-4 opacity-60"
+                >
+                  {cardInner}
+                </div>
+              );
+            }
+            return (
+              <Link
+                key={s.name}
+                to="/section/$name"
+                params={{ name: s.name }}
+                className="group rounded-2xl border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-sm"
+              >
+                {cardInner}
               </Link>
             );
           })}
