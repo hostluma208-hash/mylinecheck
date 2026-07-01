@@ -7,7 +7,7 @@ import {
   sectionProgress,
   type FlaggedRow,
 } from "@/lib/lineCheck";
-import { ArrowRight, CheckCircle2, AlertTriangle, Utensils } from "lucide-react";
+import { ArrowRight, CheckCircle2, AlertTriangle, Utensils, UserCog } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
