@@ -386,18 +386,8 @@ function ClearHistoryModal({
     setBusy(true);
     setError(null);
     try {
-      const { data: userRes, error: uErr } = await supabase.auth.getUser();
-      if (uErr || !userRes.user?.email) {
-        setError("You need to be signed in to clear history.");
-        setBusy(false);
-        return;
-      }
-      const { error: signErr } = await supabase.auth.signInWithPassword({
-        email: userRes.user.email,
-        password,
-      });
-      if (signErr) {
-        setError("Incorrect password. Please try again.");
+      if (password !== "DELETE") {
+        setError('Type DELETE (all caps) to confirm.');
         setBusy(false);
         return;
       }
