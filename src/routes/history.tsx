@@ -442,17 +442,18 @@ function ClearHistoryModal({
         ) : (
           <form onSubmit={submit} className="space-y-3">
             <label className="block text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
-              Confirm your password
+              Type <span className="font-mono text-danger">DELETE</span> to confirm
             </label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                type="password"
+                type="text"
                 autoFocus
+                autoComplete="off"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your account password"
-                className="w-full rounded-full border border-border bg-background py-2.5 pl-9 pr-4 text-sm outline-none focus:border-foreground/30"
+                placeholder="DELETE"
+                className="w-full rounded-full border border-border bg-background py-2.5 pl-9 pr-4 text-sm font-mono tracking-widest outline-none focus:border-foreground/30"
                 required
               />
             </div>
