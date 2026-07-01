@@ -14,6 +14,7 @@ import {
   type Slot,
 } from "@/lib/lineCheck";
 import { Check, ChevronDown, ChevronUp, Edit3, Filter, MoreHorizontal, Save, Thermometer, Plus, Trash2, X } from "lucide-react";
+import { z } from "zod";
 
 type EditItem = { name: string; quality: string; shelf: string; container: string };
 type EditCategory = { group: string; temp: boolean; items: EditItem[] };
