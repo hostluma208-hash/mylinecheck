@@ -95,12 +95,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          created_at: string
+          data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_shared_shift: {
+        Args: { _id: string }
+        Returns: {
+          brand_name: string
+          date: string
+          id: string
+          member: string
+          payload: Json
+          shift: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
