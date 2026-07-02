@@ -431,22 +431,7 @@ function StationsPanel() {
                   </span>
                 </div>
 
-                <IconPicker
-                  value={st.icon}
-                  onChange={(v) =>
-                    setStations((s) =>
-                      s.map((x, i) => (i === idx ? { ...x, icon: v } : x)),
-                    )
-                  }
-                />
 
-                <Icon className="h-4 w-4 text-muted-foreground" />
-                <span className="font-bold tracking-tight">{st.name}</span>
-
-
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {st.items.length} cats
-                </span>
                 <button
                   onClick={() =>
                     setStations((s) => s.filter((_, i) => i !== idx))
