@@ -18,6 +18,7 @@ import {
   Check,
   Image as ImageIcon,
   Upload,
+  GripVertical,
 } from "lucide-react";
 
 
