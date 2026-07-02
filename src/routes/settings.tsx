@@ -361,11 +361,6 @@ function StationsPanel() {
         </button>
       </div>
 
-      <ul className="space-y-2">
-        {stations.map((st, idx) => {
-          const Icon = SECTION_ICONS[st.icon] ?? Utensils;
-          const open = expanded === st.name;
-          return (
       <p className="mb-2 text-xs text-muted-foreground">
         Reorder stations by dragging the handle, using the up/down buttons, or
         pressing Space on the handle then using the arrow keys (Escape to cancel).
