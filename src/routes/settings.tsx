@@ -310,19 +310,13 @@ function StationsPanel() {
   const [name, setName] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [grabbedIdx, setGrabbedIdx] = useState<number | null>(null);
-  const [announcement, setAnnouncement] = useState("");
-  const gripRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  const move = (from: number, to: number, announce?: (name: string, pos: number, total: number) => string) => {
+  const move = (from: number, to: number) => {
     setStations((s) => {
       if (to < 0 || to >= s.length || from === to) return s;
       const next = s.slice();
       const [it] = next.splice(from, 1);
       next.splice(to, 0, it);
-      if (announce) setAnnouncement(announce(it.name, to + 1, next.length));
-      // refocus the moved grip after the DOM updates
-      queueMicrotask(() => gripRefs.current[to]?.focus());
       return next;
     });
   };
@@ -361,93 +355,46 @@ function StationsPanel() {
         </button>
       </div>
 
-      <p className="mb-2 text-xs text-muted-foreground">
-        Reorder stations by dragging the handle, using the up/down buttons, or
-        pressing Space on the handle then using the arrow keys (Escape to cancel).
-      </p>
-      <div role="status" aria-live="polite" className="sr-only">
-        {announcement}
-      </div>
-
-      <ul className="space-y-2" aria-label="Stations, reorderable">
+      <ul className="space-y-2">
         {stations.map((st, idx) => {
           const Icon = SECTION_ICONS[st.icon] ?? Utensils;
           const open = expanded === st.name;
-          const grabbed = grabbedIdx === idx;
           return (
             <li
               key={st.name + idx}
-              aria-label={`${st.name}, position ${idx + 1} of ${stations.length}`}
-              className={`rounded-2xl border bg-card shadow-sm transition-opacity ${
+              draggable
+              onDragStart={(e) => {
+                setDragIdx(idx);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragIdx !== null) move(dragIdx, idx);
+                setDragIdx(null);
+              }}
+              onDragEnd={() => setDragIdx(null)}
+              className={`rounded-2xl border border-border bg-card shadow-sm transition-opacity ${
                 dragIdx === idx ? "opacity-50" : ""
-              } ${grabbed ? "border-foreground ring-2 ring-foreground/30" : "border-border"}`}
+              }`}
             >
               <div className="flex items-center gap-3 px-4 py-3">
-                <button
-                  ref={(el) => {
-                    gripRefs.current[idx] = el;
-                  }}
-                  type="button"
-                  draggable
-                  onDragStart={(e) => {
-                    setDragIdx(idx);
-                    e.dataTransfer.effectAllowed = "move";
-                    try {
-                      e.dataTransfer.setData("text/plain", String(idx));
-                    } catch {}
-                  }}
-                  onDragEnd={() => setDragIdx(null)}
-                  onKeyDown={(e) => {
-                    if (e.key === " " || e.key === "Enter") {
-                      e.preventDefault();
-                      if (grabbed) {
-                        setGrabbedIdx(null);
-                        setAnnouncement(`${st.name} dropped at position ${idx + 1}`);
-                      } else {
-                        setGrabbedIdx(idx);
-                        setAnnouncement(
-                          `${st.name} grabbed. Use arrow keys to move, Space or Enter to drop, Escape to cancel.`,
-                        );
-                      }
-                    } else if (e.key === "Escape" && grabbed) {
-                      e.preventDefault();
-                      setGrabbedIdx(null);
-                      setAnnouncement(`Reorder cancelled. ${st.name} at position ${idx + 1}.`);
-                    } else if (grabbed && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-                      e.preventDefault();
-                      const to = idx + (e.key === "ArrowUp" ? -1 : 1);
-                      if (to >= 0 && to < stations.length) {
-                        move(idx, to, (n, pos, total) => `${n} moved to position ${pos} of ${total}`);
-                        setGrabbedIdx(to);
-                      }
-                    }
-                  }}
-                  onBlur={() => grabbed && setGrabbedIdx(null)}
-                  aria-label={`Reorder ${st.name}. Press Space to grab, arrow keys to move, Space or Enter to drop.`}
-                  aria-pressed={grabbed}
-                  className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-foreground/40 cursor-grab active:cursor-grabbing"
+                <span
+                  className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+                  aria-label="Drag to reorder"
+                  title="Drag to reorder"
                 >
-                  <GripVertical className="h-4 w-4" aria-hidden="true" />
-                </button>
-                <div
-                  className="contents"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    if (dragIdx !== null) move(dragIdx, idx);
-                    setDragIdx(null);
-                  }}
-                >
+                  <GripVertical className="h-4 w-4" />
+                </span>
                 <button
                   onClick={() => setExpanded(open ? null : st.name)}
                   className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-muted"
-                  aria-label={`${open ? "Collapse" : "Expand"} ${st.name}`}
-                  aria-expanded={open}
+                  aria-label="Expand"
                 >
-                  {open ? <ChevronDown className="h-4 w-4" aria-hidden="true" /> : <ChevronRight className="h-4 w-4" aria-hidden="true" />}
+                  {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 </button>
 
                 <IconPicker
@@ -459,29 +406,25 @@ function StationsPanel() {
                   }
                 />
 
-                <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <Icon className="h-4 w-4 text-muted-foreground" />
                 <span className="font-bold tracking-tight">{st.name}</span>
 
                 <div className="ml-auto flex items-center gap-1">
                   <button
-                    onClick={() =>
-                      move(idx, idx - 1, (n, pos, total) => `${n} moved up to position ${pos} of ${total}`)
-                    }
+                    onClick={() => move(idx, idx - 1)}
                     disabled={idx === 0}
-                    className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-foreground/40"
-                    aria-label={`Move ${st.name} up`}
+                    className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
+                    aria-label="Move up"
                   >
-                    <span aria-hidden="true">↑</span>
+                    ↑
                   </button>
                   <button
-                    onClick={() =>
-                      move(idx, idx + 1, (n, pos, total) => `${n} moved down to position ${pos} of ${total}`)
-                    }
+                    onClick={() => move(idx, idx + 1)}
                     disabled={idx === stations.length - 1}
-                    className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-foreground/40"
-                    aria-label={`Move ${st.name} down`}
+                    className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
+                    aria-label="Move down"
                   >
-                    <span aria-hidden="true">↓</span>
+                    ↓
                   </button>
                   <span className="ml-2 text-xs text-muted-foreground">
                     {st.items.length} cats
@@ -493,12 +436,11 @@ function StationsPanel() {
                   onClick={() =>
                     setStations((s) => s.filter((_, i) => i !== idx))
                   }
-                  className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-danger-soft hover:text-danger focus:outline-none focus:ring-2 focus:ring-foreground/40"
-                  aria-label={`Delete ${st.name}`}
+                  className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                  aria-label="Delete"
                 >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
-                </div>
               </div>
               {open && (
                 <div className="border-t border-border px-12 py-3">
