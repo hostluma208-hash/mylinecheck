@@ -309,6 +309,17 @@ function StationsPanel() {
   );
   const [name, setName] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  const move = (from: number, to: number) => {
+    setStations((s) => {
+      if (to < 0 || to >= s.length || from === to) return s;
+      const next = s.slice();
+      const [it] = next.splice(from, 1);
+      next.splice(to, 0, it);
+      return next;
+    });
+  };
 
   useEffect(() => {
     lsStore.setItem(STATIONS_KEY, JSON.stringify(stations));
