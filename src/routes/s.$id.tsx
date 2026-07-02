@@ -46,12 +46,10 @@ function SharedView() {
     let active = true;
     setLoading(true);
     supabase
-      .from("shared_shifts")
-      .select("payload, updated_at")
-      .eq("id", id)
-      .maybeSingle()
-      .then(({ data: row, error: err }) => {
+      .rpc("get_shared_shift", { _id: id })
+      .then(({ data: rows, error: err }) => {
         if (!active) return;
+        const row = Array.isArray(rows) ? rows[0] : null;
         if (err) {
           setError(err.message);
         } else if (!row) {
@@ -186,47 +184,66 @@ function SharedView() {
             No items recorded for this shift.
           </div>
         ) : (
-          <div className="mt-6 space-y-5">
-            {grouped.map((r) => (
-              <section key={r.section}>
-                <h3 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                  {r.section}
-                </h3>
-                <ul className="space-y-2">
-                  {r.items.map((it) => (
-                    <li
-                      key={it.item}
-                      className={`rounded-2xl border bg-card p-3 ${
-                        it.flagged ? "border-rose-200" : "border-border"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold">{it.item}</p>
-                          {it.note && (
-                            <p className="mt-0.5 text-xs text-muted-foreground">{it.note}</p>
-                          )}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {grouped.map((r) => {
+              const flaggedCount = r.items.filter((i) => i.flagged).length;
+              const okCount = r.items.length - flaggedCount;
+              return (
+                <section
+                  key={r.section}
+                  className="flex flex-col rounded-2xl border border-border bg-card p-4"
+                >
+                  <header className="mb-3 flex items-center gap-2 border-b border-border/60 pb-2">
+                    <h3 className="min-w-0 flex-1 truncate text-sm font-black uppercase tracking-wider">
+                      {r.section}
+                    </h3>
+                    {okCount > 0 && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-bold text-success">
+                        <CheckCircle2 className="h-3 w-3" /> {okCount}
+                      </span>
+                    )}
+                    {flaggedCount > 0 && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-soft px-2 py-0.5 text-[10px] font-bold text-danger">
+                        <AlertTriangle className="h-3 w-3" /> {flaggedCount}
+                      </span>
+                    )}
+                  </header>
+                  <ul className="space-y-2">
+                    {r.items.map((it) => (
+                      <li
+                        key={it.item}
+                        className={`rounded-xl border p-2.5 ${
+                          it.flagged ? "border-rose-200 bg-rose-50/40" : "border-border bg-background/40"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold">{it.item}</p>
+                            {it.note && (
+                              <p className="mt-0.5 text-xs text-muted-foreground">{it.note}</p>
+                            )}
+                          </div>
+                          <span
+                            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                              it.flagged
+                                ? "bg-danger-soft text-danger"
+                                : "bg-success-soft text-success"
+                            }`}
+                          >
+                            {it.flagged ? (
+                              <AlertTriangle className="h-3 w-3" />
+                            ) : (
+                              <CheckCircle2 className="h-3 w-3" />
+                            )}
+                            {it.status}
+                          </span>
                         </div>
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                            it.flagged
-                              ? "bg-danger-soft text-danger"
-                              : "bg-success-soft text-success"
-                          }`}
-                        >
-                          {it.flagged ? (
-                            <AlertTriangle className="h-3 w-3" />
-                          ) : (
-                            <CheckCircle2 className="h-3 w-3" />
-                          )}
-                          {it.status}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })}
           </div>
         )}
 

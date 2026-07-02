@@ -14,54 +14,9 @@ export type Database = {
   }
   public: {
     Tables: {
-      section_checks: {
-        Row: {
-          check_date: string
-          data: Json
-          section_name: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          check_date: string
-          data: Json
-          section_name: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          check_date?: string
-          data?: Json
-          section_name?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      section_structs: {
-        Row: {
-          data: Json
-          section_name: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          data: Json
-          section_name: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          data?: Json
-          section_name?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
       shared_shifts: {
         Row: {
-          brand_name: string | null
+          brand_name: string
           created_at: string
           date: string
           id: string
@@ -72,7 +27,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          brand_name?: string | null
+          brand_name?: string
           created_at?: string
           date: string
           id?: string
@@ -83,7 +38,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          brand_name?: string | null
+          brand_name?: string
           created_at?: string
           date?: string
           id?: string
@@ -95,12 +50,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          created_at: string
+          data: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_shared_shift: {
+        Args: { _id: string }
+        Returns: {
+          brand_name: string
+          date: string
+          id: string
+          member: string
+          payload: Json
+          shift: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
