@@ -18,6 +18,7 @@ import {
   Check,
   Image as ImageIcon,
   Upload,
+  GripVertical,
 } from "lucide-react";
 
 
@@ -308,6 +309,17 @@ function StationsPanel() {
   );
   const [name, setName] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  const move = (from: number, to: number) => {
+    setStations((s) => {
+      if (to < 0 || to >= s.length || from === to) return s;
+      const next = s.slice();
+      const [it] = next.splice(from, 1);
+      next.splice(to, 0, it);
+      return next;
+    });
+  };
 
   useEffect(() => {
     lsStore.setItem(STATIONS_KEY, JSON.stringify(stations));
@@ -350,9 +362,33 @@ function StationsPanel() {
           return (
             <li
               key={st.name + idx}
-              className="rounded-2xl border border-border bg-card shadow-sm"
+              draggable
+              onDragStart={(e) => {
+                setDragIdx(idx);
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragIdx !== null) move(dragIdx, idx);
+                setDragIdx(null);
+              }}
+              onDragEnd={() => setDragIdx(null)}
+              className={`rounded-2xl border border-border bg-card shadow-sm transition-opacity ${
+                dragIdx === idx ? "opacity-50" : ""
+              }`}
             >
               <div className="flex items-center gap-3 px-4 py-3">
+                <span
+                  className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+                  aria-label="Drag to reorder"
+                  title="Drag to reorder"
+                >
+                  <GripVertical className="h-4 w-4" />
+                </span>
                 <button
                   onClick={() => setExpanded(open ? null : st.name)}
                   className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-muted"
@@ -373,10 +409,29 @@ function StationsPanel() {
                 <Icon className="h-4 w-4 text-muted-foreground" />
                 <span className="font-bold tracking-tight">{st.name}</span>
 
+                <div className="ml-auto flex items-center gap-1">
+                  <button
+                    onClick={() => move(idx, idx - 1)}
+                    disabled={idx === 0}
+                    className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
+                    aria-label="Move up"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => move(idx, idx + 1)}
+                    disabled={idx === stations.length - 1}
+                    className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
+                    aria-label="Move down"
+                  >
+                    ↓
+                  </button>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {st.items.length} cats
+                  </span>
+                </div>
 
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {st.items.length} cats
-                </span>
+
                 <button
                   onClick={() =>
                     setStations((s) => s.filter((_, i) => i !== idx))
