@@ -310,13 +310,19 @@ function StationsPanel() {
   const [name, setName] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [grabbedIdx, setGrabbedIdx] = useState<number | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const gripRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  const move = (from: number, to: number) => {
+  const move = (from: number, to: number, announce?: (name: string, pos: number, total: number) => string) => {
     setStations((s) => {
       if (to < 0 || to >= s.length || from === to) return s;
       const next = s.slice();
       const [it] = next.splice(from, 1);
       next.splice(to, 0, it);
+      if (announce) setAnnouncement(announce(it.name, to + 1, next.length));
+      // refocus the moved grip after the DOM updates
+      queueMicrotask(() => gripRefs.current[to]?.focus());
       return next;
     });
   };
