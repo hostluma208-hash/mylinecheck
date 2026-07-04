@@ -2,9 +2,9 @@ import { lsStore } from "@/lib/lsStore";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  SECTIONS,
   STAFF,
   defaultShift,
+  getStationNames,
   sectionProgress,
   todayISO,
   type Slot,
@@ -100,15 +100,22 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
   const [collapsed, setCollapsed] = useState(false);
   // Recompute progress on date/shift change and on storage updates
   const [tick, setTick] = useState(0);
+  const [stationNames, setStationNames] = useState<string[]>(() => getStationNames());
   useEffect(() => {
-    const fn = () => setTick((t) => t + 1);
+    const fn = () => {
+      setStationNames(getStationNames());
+      setTick((t) => t + 1);
+    };
+    fn();
     window.addEventListener("storage", fn);
     window.addEventListener("linecheck:update", fn);
     window.addEventListener("linecheck:scope-change", fn);
+    window.addEventListener("linecheck:stations-update", fn);
     return () => {
       window.removeEventListener("storage", fn);
       window.removeEventListener("linecheck:update", fn);
       window.removeEventListener("linecheck:scope-change", fn);
+      window.removeEventListener("linecheck:stations-update", fn);
     };
   }, []);
 
@@ -144,16 +151,16 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
           </p>
         )}
         <ul className="space-y-0.5">
-          {SECTIONS.map((s) => {
-            const Icon = SECTION_ICONS[s.name] ?? Utensils;
-            const { done, total } = sectionProgress(s.name, shift, date);
+          {stationNames.map((sName) => {
+            const Icon = SECTION_ICONS[sName] ?? Utensils;
+            const { done, total } = sectionProgress(sName, shift, date);
             const pct = total ? Math.round((done / total) * 100) : 0;
-            const active = loc.pathname === `/section/${encodeURIComponent(s.name)}`;
+            const active = loc.pathname === `/section/${encodeURIComponent(sName)}`;
             return (
-              <li key={s.name}>
+              <li key={sName}>
                 <Link
                   to="/section/$name"
-                  params={{ name: s.name }}
+                  params={{ name: sName }}
                   className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
                     active
                       ? "bg-sidebar-accent text-foreground"
@@ -163,7 +170,7 @@ function Sidebar({ date, shift }: { date: string; shift: Slot }) {
                   <Icon className="h-4 w-4 shrink-0" />
                   {!collapsed && (
                     <>
-                      <span className="truncate">{s.name}</span>
+                      <span className="truncate">{sName}</span>
                       <span className="ml-auto flex items-center gap-2" suppressHydrationWarning>
                         <span className="h-1 w-10 overflow-hidden rounded-full bg-muted">
                           <span
